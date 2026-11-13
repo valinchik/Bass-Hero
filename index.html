@@ -35,7 +35,7 @@
       <section id="play-screen" class="screen">
         <button class="back-button" data-screen="home-screen">← Zpět</button>
         <h2>Vyber cvičení</h2>
-        <p class="muted">Originální cvičení pro rozehrání. Další skladby půjde přidávat později.</p>
+        <p class="muted">Krátká originální cvičení pro začátečníky. Bez licencovaných písniček, ty můžeš později přidat vlastní.</p>
         <article class="song-card">
           <div class="song-art">♫</div><div class="song-info"><strong>První groove</strong><small>Začátečník • 4 struny • 80 BPM</small></div><span class="tag">DEMO</span>
           <button class="primary-button" id="start-demo">HRÁT</button>
@@ -44,12 +44,14 @@
           <div class="song-art alt">♬</div><div class="song-info"><strong>Střídání strun</strong><small>Začátečník • 4 struny • 100 BPM</small></div><span class="tag">DEMO</span>
           <button class="secondary-button" id="start-alternate">HRÁT</button>
         </article>
+        <article class="song-card"><div class="song-art">♩</div><div class="song-info"><strong>Klidné střídání</strong><small>Začátečník • pomalé jednotlivé tóny</small></div><span class="tag">CVIČENÍ</span><button class="secondary-button" id="start-slow">HRÁT</button></article>
+        <article class="song-card"><div class="song-art alt">♫</div><div class="song-info"><strong>První riff</strong><small>Začátečník • jednoduchý rockový motiv</small></div><span class="tag">CVIČENÍ</span><button class="secondary-button" id="start-riff">HRÁT</button></article>
         <button class="outline-button wide" data-screen="editor-screen">＋ Vytvořit vlastní tab</button>
       </section>
 
       <section id="game-screen" class="screen">
         <div class="game-top"><button class="back-button" id="exit-game">✕ Ukončit</button><div class="game-score">SKÓRE <strong id="score">0</strong></div></div>
-        <div class="game-meta"><span id="difficulty-label">EASY</span><span id="bpm-label">80 BPM</span><span>COMBO <b id="combo">0</b></span></div>
+        <div class="game-meta"><span id="difficulty-label">ZAČÁTEČNÍK</span><span id="bpm-label">80 BPM</span><span id="combo-wrap">COMBO <b id="combo">0</b></span></div>
         <div class="playfield">
           <div class="lane-labels"><span>E</span><span>A</span><span>D</span><span>G</span></div>
           <div class="lanes" id="lanes">
@@ -59,7 +61,7 @@
         </div>
         <div class="game-feedback" id="feedback">Připrav se</div>
         <div class="game-controls"><button class="lane-hit" data-lane="0">E</button><button class="lane-hit" data-lane="1">A</button><button class="lane-hit" data-lane="2">D</button><button class="lane-hit" data-lane="3">G</button></div>
-        <p class="hint">Klepni na správnou strunu ve chvíli, kdy nota dorazí k bílé čáře.</p>
+        <p class="hint" id="practice-hint">Klepni na strunu, která odpovídá zobrazené notě. V režimu čekání se cvičení posune až po správné volbě.</p>
       </section>
 
       <section id="results-screen" class="screen">
@@ -78,7 +80,9 @@
       <section id="settings-screen" class="screen">
         <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Nastavení</h2>
         <div class="setting-row"><div><strong>Obtížnost</strong><small>Ovlivní rychlost not</small></div><select id="difficulty"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option><option value="expert">Expert</option></select></div>
-        <div class="setting-row"><div><strong>Rychlost</strong><small>Tempo cvičení</small></div><select id="speed"><option value="0.5">50 %</option><option value="0.75">75 %</option><option value="1" selected>100 %</option></select></div>
+        <div class="setting-row"><div><strong>Rychlost</strong><small>Tempo cvičení</small></div><select id="speed"><option value="0.05">5 %</option><option value="0.1">10 %</option><option value="0.15">15 %</option><option value="0.2">20 %</option><option value="0.25">25 %</option><option value="0.5">50 %</option><option value="0.75">75 %</option><option value="1" selected>100 %</option></select></div>
+        <div class="setting-row"><div><strong>Režim cvičení</strong><small>Bez časového tlaku</small></div><select id="practice-mode"><option value="wait">Čekat na správnou strunu</option><option value="flow">Plynulé cvičení</option></select></div>
+        <div class="setting-row"><div><strong>Odpočet</strong><small>Pauza před začátkem</small></div><select id="countdown"><option value="3">3 sekundy</option><option value="5" selected>5 sekund</option><option value="0">Bez odpočtu</option></select></div>
         <div class="setting-row"><div><strong>Jazyk</strong><small>Jazyk aplikace</small></div><select id="language"><option value="cs">Čeština</option><option value="en">English (brzy)</option></select></div>
         <p class="muted tiny">Mikrofon a rozpoznávání skutečně zahraných tónů zatím nejsou zapnuté. Aktuální verze se ovládá klepáním na struny.</p>
       </section>
