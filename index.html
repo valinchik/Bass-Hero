@@ -4,23 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#6d3bd1">
-  <meta name="description" content="Bass Hero 1.5 - tabulatury a trénink baskytary">
+  <meta name="description" content="Bass Hero 1.6 - automatická analýza MP3 a trénink baskytary">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
-  <title>Bass Hero 1.5</title>
+  <title>Bass Hero 1.6</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <button class="brand brand-button" data-screen="home-screen" aria-label="Domů">
-        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.5</small></span>
+        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.6</small></span>
       </button>
       <button class="icon-button" id="settings-shortcut" aria-label="Nastavení">⚙</button>
     </header>
     <main>
       <section id="home-screen" class="screen active">
         <div class="hero">
-          <p class="eyebrow">BASS HERO · VERZE 1.5</p>
+          <p class="eyebrow">BASS HERO · VERZE 1.6</p>
           <h1>Hraj celé skladby<span>.</span></h1>
           <p class="muted">Tabulatura, hudební doprovod a kontrola skutečně zahraných tónů.</p>
           <button class="primary-button wide" data-screen="tabs-screen">OTEVŘÍT SKLADBY <span>▶</span></button>
@@ -32,7 +32,7 @@
           <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor tabů</strong><small>Vlastní tabulatury</small></button>
           <button class="menu-card" data-screen="mic-test-screen"><span class="menu-icon">🎙</span><strong>Mikrofon a AI</strong><small>Kalibrace rozpoznávání</small></button>
         </div>
-        <p class="version">BASS HERO · v1.5</p>
+        <p class="version">BASS HERO · v1.6</p>
       </section>
 
       <section id="tabs-screen" class="screen">
@@ -43,10 +43,29 @@
         <div class="library-actions">
           <button class="secondary-button" id="import-tab-home">＋ IMPORTOVAT TAB</button>
           <button class="outline-button" id="open-editor">EDITOR</button>
+          <button class="secondary-button" id="open-ai-audio">♫ MP3 → AI TAB</button>
         </div>
         <input id="tab-file" type="file" accept=".txt,.tab,.json,text/plain,application/json" hidden>
         <div id="song-list" class="song-list"></div>
         <div class="info-note">Krátká ukázka přehraje začátek skladby. Pro originální nahrávku připoj vlastní zvukový soubor v přehrávači.</div>
+      </section>
+
+      <section id="ai-audio-screen" class="screen">
+        <button class="back-button" data-screen="tabs-screen">← Zpět ke skladbám</button>
+        <p class="eyebrow">LOKÁLNÍ ANALÝZA ZVUKU</p>
+        <h2>MP3 → basová tabulatura</h2>
+        <p class="muted">Vyber hudební soubor. Bass Hero zkusí rozpoznat tóny v nízkých frekvencích, převede je na struny a pražce a propojí je s časem v nahrávce.</p>
+        <label class="editor-label">Název skladby<input id="ai-audio-title" type="text" value="Moje skladba" maxlength="60"></label>
+        <label class="editor-label">Tempo pro zobrazení taktů BPM<input id="ai-audio-bpm" type="number" min="30" max="240" value="90"></label>
+        <div class="ai-audio-card">
+          <button class="outline-button wide" id="ai-audio-choose">♫ VYBRAT MP3 / AUDIO</button>
+          <input id="ai-audio-file" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg" hidden>
+          <p class="file-name" id="ai-audio-file-name">Žádný soubor nevybrán</p>
+          <button class="primary-button wide" id="ai-audio-analyze" disabled>VYTVOŘIT TABULATURU</button>
+          <div class="analysis-track"><span id="ai-audio-progress"></span></div>
+          <p class="muted" id="ai-audio-status">Analýza proběhne přímo v telefonu. Nahrávka se nikam neodesílá.</p>
+        </div>
+        <div class="info-note">Poznámka: jde o automatický odhad, ne o dokonalé oddělení basy. Bicí, kytary a zpěv mohou výsledek mást. V první verzi je limit nahrávky 6 minut. MP3 se uloží do telefonu a můžeš ho znovu otevřít v přehrávači.</div>
       </section>
 
       <section id="player-screen" class="screen">
