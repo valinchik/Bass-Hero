@@ -58,3 +58,5 @@ jobs:
           name: Bass-Hero-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+# Rebuild after fixing app click handlers
