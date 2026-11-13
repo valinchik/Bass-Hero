@@ -8,6 +8,7 @@ on:
       - 'style.css'
       - 'app.js'
       - 'manifest.webmanifest'
+      - 'sw.js'
       - 'package.json'
       - 'capacitor.config.json'
       - '.github/workflows/build-apk.yml'
@@ -26,6 +27,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html style.css app.js manifest.webmanifest sw.js www/
       - name: Install dependencies
         run: npm install
       - name: Add Android platform
