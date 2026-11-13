@@ -28,6 +28,7 @@
           <button class="menu-card" data-screen="stats-screen"><span class="menu-icon">▥</span><strong>Statistiky</strong><small>Tvůj progres</small></button>
           <button class="menu-card" data-screen="settings-screen"><span class="menu-icon">⚙</span><strong>Nastavení</strong><small>Uprav si hru</small></button>
           <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor</strong><small>Vlastní taby</small></button>
+          <button class="menu-card" data-screen="mic-test-screen"><span class="menu-icon">🎙</span><strong>Test mikrofonu</strong><small>Diagnostika rozpoznávání tónů</small></button>
         </div>
         <p class="version">BASS HERO • PRVNÍ TESTOVACÍ VERZE</p>
       </section>
@@ -47,6 +48,23 @@
         <article class="song-card"><div class="song-art">♩</div><div class="song-info"><strong>Klidné střídání</strong><small>Začátečník • pomalé jednotlivé tóny</small></div><span class="tag">CVIČENÍ</span><button class="secondary-button" id="start-slow">HRÁT</button></article>
         <article class="song-card"><div class="song-art alt">♫</div><div class="song-info"><strong>První riff</strong><small>Začátečník • jednoduchý rockový motiv</small></div><span class="tag">CVIČENÍ</span><button class="secondary-button" id="start-riff">HRÁT</button></article>
         <button class="outline-button wide" data-screen="editor-screen">＋ Vytvořit vlastní tab</button>
+      </section>
+
+      <section id="mic-test-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button>
+        <p class="eyebrow">KALIBRACE A DIAGNOSTIKA</p>
+        <h2>Test mikrofonu</h2>
+        <p class="muted">Aplikace postupně poslechne čtyři prázdné struny. Zahraj vždy jednu čistou notu a nech ji krátce znít. Zvuk se nikam neodesílá.</p>
+        <div class="mic-test-card">
+          <small id="mic-test-step">Připraveno k testu</small>
+          <strong id="mic-test-note">E1</strong>
+          <p id="mic-test-instruction">Stiskni tlačítko a povol přístup k mikrofonu.</p>
+          <div class="mic-test-meter"><span id="mic-test-progress"></span></div>
+          <p id="mic-test-live">Zatím žádný tón nezachycen</p>
+        </div>
+        <button class="primary-button wide" id="mic-test-start">SPUSTIT TEST</button>
+        <button class="outline-button wide" id="mic-test-reset">VYMAZAT VÝSLEDEK</button>
+        <div class="mic-test-report" id="mic-test-report">Po testu se zde zobrazí výsledek rozpoznávání.</div>
       </section>
 
       <section id="game-screen" class="screen">
@@ -85,7 +103,7 @@
         <div class="setting-row"><div><strong>Režim cvičení</strong><small>Bez časového tlaku</small></div><select id="practice-mode"><option value="wait">Čekat na správnou strunu</option><option value="flow">Plynulé cvičení</option></select></div>
         <div class="setting-row"><div><strong>Odpočet</strong><small>Pauza před začátkem</small></div><select id="countdown"><option value="3">3 sekundy</option><option value="5" selected>5 sekund</option><option value="0">Bez odpočtu</option></select></div>
         <div class="setting-row"><div><strong>Jazyk</strong><small>Jazyk aplikace</small></div><select id="language"><option value="cs">Čeština</option><option value="en">English (brzy)</option></select></div>
-        <p class="muted tiny">Mikrofon a rozpoznávání skutečně zahraných tónů zatím nejsou zapnuté. Aktuální verze se ovládá klepáním na struny.</p>
+        <p class="muted tiny">Test mikrofonu měří přesnost rozpoznávání otevřených strun. Výsledky se ukládají pouze v tomto telefonu a pomáhají porovnávat další kalibrace.</p>
       </section>
 
       <section id="editor-screen" class="screen">
