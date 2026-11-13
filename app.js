@@ -264,7 +264,12 @@ $("#load-audio").onclick=()=>$("#audio-file").click();
 $("#audio-file").onchange=e=>{const file=e.target.files&&e.target.files[0];if(file)setAudioSource(file,true);};
 $("#play-mode").onchange=e=>{state.playMode=e.target.value;localStorage.setItem("bh-play-mode",state.playMode);};
 $("#sound-mode").onchange=e=>{state.soundMode=e.target.value;localStorage.setItem("bh-sound-mode",state.soundMode);$("#sound-mode-note").textContent=state.soundMode==="bass-sync"?"Bass Sync zvýrazní rytmus a nástupy basové linky. U smíchaného MP3 zůstává původní mix pohromadě.":"Original přehraje připojenou nahrávku, nebo plnější demo doprovod."};
-$("#player-speed").onchange=e=>{state.speed=Number(e.target.value);localStorage.setItem("bh-speed",String(state.speed));if(state.audioElement)state.audioElement.playbackRate=state.speed;};
+$("#player-speed").onchange=e=>{
+  const oldSpeed=state.speed;const now=performance.now();
+  if(state.playing&&state.song){const beat=state.startBeat+(now-state.startAt)/(60000/state.song.bpm/oldSpeed);state.startBeat=beat;state.startAt=now;}
+  state.speed=Number(e.target.value);localStorage.setItem("bh-speed",String(state.speed));
+  if(state.audioElement)state.audioElement.playbackRate=state.speed;
+};
 
 function stopAudioAtCurrentBeat(){
   if(state.audioElement){state.audioElement.pause();return;}
@@ -299,6 +304,7 @@ function saveSongProgress(){
 }
 function startPlayer(isPreview,resume){
   if(!state.song)return;
+  show("player-screen");
   if(state.playing||state.waiting)stopPlayback(false);
   state.previewing=Boolean(isPreview);state.waiting=false;
   state.currentIndex=0;state.song.notes.forEach(n=>{n.status="pending";n.wrongRecorded=false;});
@@ -343,7 +349,9 @@ function playerTick(now){
     }
   }
   updatePlayerUI(beat);
-  if(state.previewing&&now-state.previewStartedAt>=8000)return;
+  if(state.previewing&&(now-state.previewStartedAt>=8000||beat>=state.song.totalBeats)){
+    stopPlayback(false);$("#player-feedback").textContent="Ukázka dokončena. Teď můžeš spustit celou skladbu.";$("#player-state").textContent="UKÁZKA HOTOVÁ";return;
+  }
   if(beat>=state.song.totalBeats){finishSong();return;}
   state.raf=requestAnimationFrame(playerTick);
 }
@@ -365,7 +373,7 @@ function confirmMutedNote(){
 $("#muted-note-confirm").onclick=confirmMutedNote;
 function hitWaitingNote(cents){
   const note=state.song&&state.song.notes[state.currentIndex];if(!note)return;
-  setNoteStatus(note,"hit");state.hits++;recordAI(note.string,cents,true);
+  setNoteStatus(note,"hit");state.hits++;if(!note.muted)recordAI(note.string,cents,true);
   $("#player-feedback").textContent="Správně! "+note.string+" · "+note.display;
   state.currentIndex++;
   if(state.currentIndex>=state.song.notes.length){finishSong();return;}
