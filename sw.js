@@ -1,4 +1,4 @@
-const CACHE = 'bass-hero-v1-5';
+const CACHE = 'bass-hero-v1-6';
 const FILES = ['./','./index.html','./style.css','./app.js','./manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
