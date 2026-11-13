@@ -97,6 +97,7 @@ function show(id){
 $$("[data-screen]").forEach(btn=>btn.addEventListener("click",()=>show(btn.dataset.screen)));
 $("#settings-shortcut").onclick=()=>show("settings-screen");
 $("#open-editor").onclick=()=>show("editor-screen");
+$("#open-ai-audio").onclick=()=>show("ai-audio-screen");
 $("#import-tab-home").onclick=()=>$("#tab-file").click();
 
 function getSongById(id){return DEMO_SONGS.find(s=>s.id===id)||state.savedTabs.find(s=>s.id===id)||null;}
@@ -133,7 +134,8 @@ function openSong(song){
   $("#audio-file-label").textContent=state.audioSources[song.id]?"Vlastní audio připojeno":"Demo používá vytvořený doprovod";
   state.speed=Number($("#player-speed").value);state.playMode=$("#play-mode").value;state.soundMode=$("#sound-mode").value;
   $("#sound-mode-note").textContent=state.soundMode==="bass-sync"?"Bass Sync zvýrazní rytmus a nástupy basové linky. U smíchaného MP3 zůstává původní mix pohromadě.":"Original přehraje připojenou nahrávku, nebo plnější demo doprovod.";
-  if(state.audioSources[song.id])setAudioSource(state.audioSources[song.id],false);else setAudioSource(null,false);
+  if(state.audioSources[song.id])setAudioSource(state.audioSources[song.id],false);
+  else{setAudioSource(null,false);restoreAudioAsset(song.id);}
   renderTab();updatePlayerUI(0);show("player-screen");
   $("#player-feedback").textContent="Připraveno. Zapni mikrofon a spusť skladbu.";
 }
@@ -260,6 +262,233 @@ function setAudioSource(file,announce){
   $("#audio-file-label").textContent=file.name;
   if(announce)$("#player-feedback").textContent="Vlastní audio připojeno. V Original hraje nahrávka, Bass Sync přidá rytmické zvýraznění.";
 }
+
+function openAudioDatabase(){
+  return new Promise((resolve,reject)=>{
+    if(!("indexedDB" in window)){reject(new Error("Toto zařízení nepodporuje místní ukládání audia."));return;}
+    const request=indexedDB.open("bass-hero-audio",1);
+    request.onupgradeneeded=()=>{
+      const db=request.result;
+      if(!db.objectStoreNames.contains("tracks"))db.createObjectStore("tracks");
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error||new Error("Databázi audia se nepodařilo otevřít."));
+  });
+}
+async function saveAudioAsset(id,file){
+  let db;
+  try{
+    db=await openAudioDatabase();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction("tracks","readwrite");
+      tx.objectStore("tracks").put({blob:file,name:file.name||"track.mp3",type:file.type||"audio/mpeg"},id);
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("Uložení MP3 selhalo."));
+      tx.onabort=()=>reject(tx.error||new Error("Uložení MP3 bylo přerušeno."));
+    });
+    db.close();
+    return true;
+  }catch(error){
+    if(db)db.close();
+    return false;
+  }
+}
+async function loadAudioAsset(id){
+  let db;
+  try{
+    db=await openAudioDatabase();
+    const record=await new Promise((resolve,reject)=>{
+      const tx=db.transaction("tracks","readonly");
+      const request=tx.objectStore("tracks").get(id);
+      request.onsuccess=()=>resolve(request.result||null);
+      request.onerror=()=>reject(request.error||new Error("Načtení MP3 selhalo."));
+    });
+    db.close();
+    if(!record||!record.blob)return null;
+    return new File([record.blob],record.name||"track.mp3",{type:record.type||"audio/mpeg"});
+  }catch(error){
+    if(db)db.close();
+    return null;
+  }
+}
+async function restoreAudioAsset(songId){
+  const file=await loadAudioAsset(songId);
+  if(!file||!state.song||state.song.id!==songId)return;
+  state.audioSources[songId]=file;
+  setAudioSource(file,false);
+  $("#audio-file-label").textContent=file.name||"Uložené MP3";
+  $("#player-feedback").textContent="Uložené MP3 bylo načteno z tohoto telefonu.";
+}
+function bassPositionFromMidi(midi){
+  const open={E:28,A:33,D:38,G:43};
+  const choices=[];
+  STRINGS.forEach(string=>{
+    const fret=midi-open[string];
+    if(fret>=0&&fret<=24)choices.push({string,fret});
+  });
+  choices.sort((a,b)=>a.fret-b.fret||STRINGS.indexOf(a.string)-STRINGS.indexOf(b.string));
+  return choices[0]||null;
+}
+async function analyzeBassAudio(file,bpm,onProgress){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)throw new Error("Tento telefon nepodporuje analýzu zvuku v prohlížeči.");
+  const context=new AudioCtx();
+  let audioBuffer;
+  try{
+    const data=await file.arrayBuffer();
+    audioBuffer=await context.decodeAudioData(data.slice(0));
+  }catch(error){
+    throw new Error("MP3 se nepodařilo dekódovat. Zkus jiný zvukový soubor.");
+  }finally{
+    if(context.state!=="closed")context.close().catch(()=>{});
+  }
+  if(audioBuffer.duration>360)throw new Error("První verze zvládá nahrávky do 6 minut.");
+  const originalRate=audioBuffer.sampleRate;
+  const factor=Math.max(1,Math.round(originalRate/4000));
+  const sampleRate=originalRate/factor;
+  const channelData=[];
+  for(let channel=0;channel<audioBuffer.numberOfChannels;channel++)channelData.push(audioBuffer.getChannelData(channel));
+  const sampleCount=Math.ceil(audioBuffer.length/factor);
+  const mono=new Float32Array(sampleCount);
+  const alpha=1-Math.exp(-2*Math.PI*380/originalRate);
+  let filtered=0;
+  for(let out=0,source=0;out<sampleCount;out++,source+=factor){
+    let sample=0;
+    for(let channel=0;channel<channelData.length;channel++)sample+=channelData[channel][source]||0;
+    sample/=channelData.length;
+    filtered+=alpha*(sample-filtered);
+    mono[out]=filtered;
+  }
+  const frameSize=1024,hop=384;
+  const minLag=Math.max(2,Math.floor(sampleRate/260));
+  const maxLag=Math.min(frameSize-8,Math.floor(sampleRate/38));
+  const usable=frameSize-maxLag;
+  const frames=[];
+  const totalFrames=Math.max(1,Math.floor((mono.length-frameSize)/hop)+1);
+  const diff=new Float64Array(maxLag+1);
+  for(let frame=0,pos=0;pos+frameSize<=mono.length;frame++,pos+=hop){
+    let mean=0;
+    for(let i=0;i<frameSize;i+=2)mean+=mono[pos+i];
+    mean/=frameSize/2;
+    let energy=0;
+    for(let i=0;i<frameSize;i+=2){
+      const value=mono[pos+i]-mean;
+      energy+=value*value;
+    }
+    if(Math.sqrt(energy/(frameSize/2))<0.0022){
+      frames.push(null);
+    }else{
+      let bestLag=0,bestScore=1;
+      for(let lag=minLag;lag<=maxLag;lag++){
+        let difference=0;
+        for(let i=0;i<usable;i+=2){
+          const a=mono[pos+i]-mean;
+          const b=mono[pos+i+lag]-mean;
+          const delta=a-b;
+          difference+=delta*delta;
+        }
+        diff[lag]=difference;
+        const score=difference/Math.max(1e-9,2*energy);
+        if(score<bestScore){bestScore=score;bestLag=lag;}
+      }
+      if(bestLag&&bestScore<0.38){
+        const left=diff[Math.max(minLag,bestLag-1)];
+        const center=diff[bestLag];
+        const right=diff[Math.min(maxLag,bestLag+1)];
+        const denominator=left-2*center+right;
+        const shift=Math.abs(denominator)>1e-9?Math.max(-0.5,Math.min(0.5,0.5*(left-right)/denominator)):0;
+        const frequency=sampleRate/(bestLag+shift);
+        if(frequency>=38&&frequency<=260){
+          frames.push(Math.round(69+12*Math.log2(frequency/440)));
+        }else frames.push(null);
+      }else frames.push(null);
+    }
+    if(frame%35===0){
+      if(onProgress)onProgress(Math.round(frame/totalFrames*85),"Rozpoznávám tóny…");
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+  }
+  for(let i=1;i<frames.length-1;i++){
+    if(frames[i-1]!==null&&frames[i-1]===frames[i+1])frames[i]=frames[i-1];
+  }
+  const notes=[];
+  let start=0;
+  while(start<frames.length){
+    const midi=frames[start];
+    let end=start;
+    while(end+1<frames.length&&frames[end+1]===midi)end++;
+    if(midi!==null){
+      const durationSeconds=(end-start+1)*hop/sampleRate;
+      const position=bassPositionFromMidi(midi);
+      if(position&&durationSeconds>=0.12){
+        const startSeconds=start*hop/sampleRate;
+        notes.push({
+          id:"ai-"+notes.length,
+          beat:startSeconds*bpm/60,
+          string:position.string,
+          fret:position.fret,
+          duration:Math.max(0.125,durationSeconds*bpm/60),
+          technique:"AI odhad",
+          display:String(position.fret),
+          status:"pending",
+          wrongRecorded:false
+        });
+      }
+    }
+    start=end+1;
+  }
+  if(onProgress)onProgress(100,"Dokončeno.");
+  if(!notes.length)throw new Error("Nepodařilo se rozpoznat použitelnou basovou linku. Zkus nahrávku, ve které je basa výraznější.");
+  const totalBeats=Math.max(4,audioBuffer.duration*bpm/60);
+  return {notes,totalBeats,bars:Math.ceil(totalBeats/4),duration:audioBuffer.duration};
+}
+$("#ai-audio-choose").onclick=()=>$("#ai-audio-file").click();
+$("#ai-audio-file").onchange=e=>{
+  const file=e.target.files&&e.target.files[0];
+  $("#ai-audio-file-name").textContent=file?file.name+" · "+Math.round(file.size/1024/1024*10)/10+" MB":"Žádný soubor nevybrán";
+  $("#ai-audio-analyze").disabled=!file;
+  if(file)$("#ai-audio-status").textContent="Soubor připravený k analýze.";
+};
+$("#ai-audio-analyze").onclick=async()=>{
+  const file=$("#ai-audio-file").files&&$("#ai-audio-file").files[0];
+  if(!file){$("#ai-audio-status").textContent="Nejdřív vyber MP3 nebo jiný zvukový soubor.";return;}
+  const title=$("#ai-audio-title").value.trim()||file.name.replace(/\.[^.]+$/,"").slice(0,60)||"Moje skladba";
+  const bpm=Math.max(30,Math.min(240,Number($("#ai-audio-bpm").value)||90));
+  const button=$("#ai-audio-analyze");
+  button.disabled=true;button.textContent="ANALYZUJI…";
+  $("#ai-audio-status").textContent="Načítám a analyzuji nahrávku…";
+  $("#ai-audio-progress").style.width="2%";
+  try{
+    const result=await analyzeBassAudio(file,bpm,(percent,message)=>{
+      $("#ai-audio-progress").style.width=Math.max(2,percent)+"%";
+      $("#ai-audio-status").textContent=message+" "+percent+" %";
+    });
+    const song={
+      id:"custom-ai-"+Date.now(),
+      title,
+      bpm,
+      bars:result.bars,
+      totalBeats:result.totalBeats,
+      notes:result.notes,
+      description:"Automatický odhad basové linky · připojené MP3"
+    };
+    saveCustomSong(song);
+    state.audioSources[song.id]=file;
+    const audioSaved=await saveAudioAsset(song.id,file);
+    openSong(song);
+    state.playMode="flow";
+    $("#play-mode").value="flow";
+    $("#player-feedback").textContent="Hotovo: "+song.notes.length+" odhadnutých tónů. Zvol Flow pro nepřerušené přehrávání. Výsledek může obsahovat chyby.";
+    if(!audioSaved)$("#player-feedback").textContent+=" MP3 zůstane připojené jen do zavření aplikace.";
+    $("#player-state").textContent="AI TAB HOTOV";
+  }catch(error){
+    $("#ai-audio-status").textContent=error.message||"Analýza se nepodařila.";
+    $("#ai-audio-progress").style.width="0%";
+  }finally{
+    button.disabled=false;button.textContent="VYTVOŘIT TABULATURU";
+  }
+};
+
 $("#load-audio").onclick=()=>$("#audio-file").click();
 $("#audio-file").onchange=e=>{const file=e.target.files&&e.target.files[0];if(file)setAudioSource(file,true);};
 $("#play-mode").onchange=e=>{state.playMode=e.target.value;localStorage.setItem("bh-play-mode",state.playMode);};
