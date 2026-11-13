@@ -4,59 +4,185 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#6d3bd1">
-  <meta name="description" content="Bass Hero - rytmický trenažér baskytary">
+  <meta name="description" content="Bass Hero 1.5 - tabulatury a trénink baskytary">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
-  <title>Bass Hero</title>
+  <title>Bass Hero 1.5</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">BH</span><div><strong>BASS HERO</strong><small>PLAY YOUR BASS</small></div></div>
+      <button class="brand brand-button" data-screen="home-screen" aria-label="Domů">
+        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.5</small></span>
+      </button>
       <button class="icon-button" id="settings-shortcut" aria-label="Nastavení">⚙</button>
     </header>
     <main>
       <section id="home-screen" class="screen active">
         <div class="hero">
-          <p class="eyebrow">VÍTEJ V BASS HERO</p>
-          <h1>Ovládni rytmus<span>.</span></h1>
-          <p class="muted">Trénuj přesnost, zlepšuj combo a posouvej svoje hraní dál.</p>
-          <button class="primary-button wide" data-screen="play-screen">HRÁT <span>▶</span></button>
+          <p class="eyebrow">BASS HERO · VERZE 1.5</p>
+          <h1>Hraj celé skladby<span>.</span></h1>
+          <p class="muted">Tabulatura, hudební doprovod a kontrola skutečně zahraných tónů.</p>
+          <button class="primary-button wide" data-screen="tabs-screen">OTEVŘÍT SKLADBY <span>▶</span></button>
         </div>
         <div class="menu-grid">
-          <button class="menu-card" data-screen="play-screen"><span class="menu-icon">♫</span><strong>Hrát</strong><small>Vyber cvičení</small></button>
-          <button class="menu-card" data-screen="stats-screen"><span class="menu-icon">▥</span><strong>Statistiky</strong><small>Tvůj progres</small></button>
-          <button class="menu-card" data-screen="settings-screen"><span class="menu-icon">⚙</span><strong>Nastavení</strong><small>Uprav si hru</small></button>
-          <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor</strong><small>Vlastní taby</small></button>
-          <button class="menu-card" data-screen="mic-test-screen"><span class="menu-icon">🎙</span><strong>Test mikrofonu</strong><small>Diagnostika rozpoznávání tónů</small></button>
+          <button class="menu-card" data-screen="tabs-screen"><span class="menu-icon">♫</span><strong>Skladby a taby</strong><small>Celé basové linky</small></button>
+          <button class="menu-card" data-screen="stats-screen"><span class="menu-icon">▥</span><strong>Statistiky</strong><small>Výsledky skladeb</small></button>
+          <button class="menu-card" data-screen="settings-screen"><span class="menu-icon">⚙</span><strong>Nastavení</strong><small>Rychlost a zvuk</small></button>
+          <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor tabů</strong><small>Vlastní tabulatury</small></button>
+          <button class="menu-card" data-screen="mic-test-screen"><span class="menu-icon">🎙</span><strong>Mikrofon a AI</strong><small>Kalibrace rozpoznávání</small></button>
         </div>
-        <p class="version">BASS HERO • PRVNÍ TESTOVACÍ VERZE</p>
+        <p class="version">BASS HERO · v1.5</p>
       </section>
 
-      <section id="play-screen" class="screen">
+      <section id="tabs-screen" class="screen">
         <button class="back-button" data-screen="home-screen">← Zpět</button>
-        <h2>Vyber cvičení</h2>
-        <p class="muted">Krátká originální cvičení pro začátečníky. Bez licencovaných písniček, ty můžeš později přidat vlastní.</p>
-        <article class="song-card">
-          <div class="song-art">♫</div><div class="song-info"><strong>První groove</strong><small>Začátečník • 4 struny • 80 BPM</small></div><span class="tag">DEMO</span>
-          <button class="primary-button" id="start-demo">HRÁT</button>
-        </article>
-        <article class="song-card">
-          <div class="song-art alt">♬</div><div class="song-info"><strong>Střídání strun</strong><small>Začátečník • 4 struny • 100 BPM</small></div><span class="tag">DEMO</span>
-          <button class="secondary-button" id="start-alternate">HRÁT</button>
-        </article>
-        <article class="song-card"><div class="song-art">♩</div><div class="song-info"><strong>Klidné střídání</strong><small>Začátečník • pomalé jednotlivé tóny</small></div><span class="tag">CVIČENÍ</span><button class="secondary-button" id="start-slow">HRÁT</button></article>
-        <article class="song-card"><div class="song-art alt">♫</div><div class="song-info"><strong>První riff</strong><small>Začátečník • jednoduchý rockový motiv</small></div><span class="tag">CVIČENÍ</span><button class="secondary-button" id="start-riff">HRÁT</button></article>
-        <button class="outline-button wide" data-screen="editor-screen">＋ Vytvořit vlastní tab</button>
+        <p class="eyebrow">KNIHOVNA TABULATUR</p>
+        <h2>Vyber skladbu</h2>
+        <p class="muted">Obsahuje originální demo skladby. Další taby můžeš importovat jako textovou ASCII tabulaturu nebo soubor Bass Hero JSON.</p>
+        <div class="library-actions">
+          <button class="secondary-button" id="import-tab-home">＋ IMPORTOVAT TAB</button>
+          <button class="outline-button" id="open-editor">EDITOR</button>
+        </div>
+        <input id="tab-file" type="file" accept=".txt,.tab,.json,text/plain,application/json" hidden>
+        <div id="song-list" class="song-list"></div>
+        <div class="info-note">Krátká ukázka přehraje začátek skladby. Pro originální nahrávku připoj vlastní zvukový soubor v přehrávači.</div>
+      </section>
+
+      <section id="player-screen" class="screen">
+        <button class="back-button" id="player-back">← Zpět ke skladbám</button>
+        <div class="player-title-row">
+          <div><p class="eyebrow">PŘEHRÁVAČ TABULATURY</p><h2 id="song-title">Skladba</h2><p class="muted" id="song-subtitle"></p></div>
+          <span class="live-badge" id="player-state">PŘIPRAVENO</span>
+        </div>
+        <div class="progress-card">
+          <div class="progress-top"><span id="bar-counter">TAKT 1 / 16</span><strong id="song-percent">0 %</strong></div>
+          <div class="progress-track"><span id="song-progress"></span></div>
+          <div class="progress-bottom"><span id="hit-counter">0 správně</span><span id="miss-counter">0 chyb</span></div>
+        </div>
+
+        <div class="player-settings">
+          <label><span>Režim hraní</span>
+            <select id="play-mode"><option value="wait">Čekat na správný tón</option><option value="flow">Plynule bez zastavení</option></select>
+          </label>
+          <label><span>Režim zvuku</span>
+            <select id="sound-mode"><option value="original">Original</option><option value="bass-sync">Bass Sync</option></select>
+          </label>
+          <label><span>Rychlost</span>
+            <select id="player-speed">
+              <option value="1">100 %</option><option value="0.9">90 %</option><option value="0.8">80 %</option><option value="0.7">70 %</option><option value="0.6">60 %</option><option value="0.5">50 %</option><option value="0.4">40 %</option><option value="0.3">30 %</option><option value="0.2">20 %</option><option value="0.1">10 %</option><option value="0.05">5 %</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="audio-file-row">
+          <button class="outline-button" id="load-audio">♫ Připojit vlastní audio</button>
+          <input id="audio-file" type="file" accept="audio/*" hidden>
+          <span id="audio-file-label">Demo používá vytvořený doprovod</span>
+        </div>
+
+        <div class="transport">
+          <button class="primary-button" id="player-play">▶ SPUSTIT</button>
+          <button class="secondary-button" id="player-pause">Ⅱ PAUZA</button>
+          <button class="outline-button" id="player-restart">↺ OD ZAČÁTKU</button>
+        </div>
+        <div class="preview-row">
+          <button class="outline-button" id="player-preview">▶ Krátká ukázka</button>
+          <button class="outline-button" id="player-resume">Pokračovat od uloženého místa</button>
+        </div>
+
+        <div class="note-focus">
+          <div><small>TEĎ HRAJ</small><strong id="current-note">E · 0</strong><span id="current-technique"></span></div>
+          <div class="next-focus"><small>DALŠÍ TÓN</small><strong id="next-note">A · 2</strong></div>
+          <p id="player-feedback">Připraveno. Zapni mikrofon a spusť skladbu.</p>
+          <button class="outline-button" id="muted-note-confirm" style="display:none">POTVRDIT TLUMENÝ TÓN</button>
+        </div>
+
+        <div class="tab-heading"><strong> TABULATURA</strong><small>Posouvej vodorovně pro další takty</small></div>
+        <div class="tab-viewport" id="tab-viewport"><div id="tab-canvas" class="tab-canvas"></div></div>
+
+        <div class="mic-panel">
+          <div><strong>🎙 Kontrola baskytary</strong><small id="mic-status">Mikrofon vypnutý</small></div>
+          <button class="outline-button" id="mic-toggle">ZAPNOUT MIKROFON</button>
+        </div>
+
+        <div class="volume-panel">
+          <label><span>Hlasitost hudby</span><input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.65"><b id="music-volume-value">65 %</b></label>
+          <label><span>Referenční basa</span><input id="guide-volume" type="range" min="0" max="1" step="0.05" value="0.15"><b id="guide-volume-value">15 %</b></label>
+          <small>Hlasitost skutečné baskytary uprav na zesilovači. Druhý posuvník ovládá basové tóny přehrávané aplikací.</small>
+        </div>
+        <div class="info-note" id="sound-mode-note">Original přehraje vlastní nahrávku, pokud ji připojíš. Bez nahrávky hraje demo doprovod.</div>
+      </section>
+
+      <section id="results-screen" class="screen">
+        <p class="eyebrow">SKLADBA DOKONČENA</p>
+        <h2>Dobrá práce<span>.</span></h2>
+        <p class="muted" id="result-song-title"></p>
+        <div class="result-score"><strong id="result-accuracy">0 %</strong><small>PŘESNOST TÓNŮ</small></div>
+        <div class="result-grid">
+          <div><strong id="result-hits">0</strong><small>SPRÁVNĚ</small></div>
+          <div><strong id="result-misses">0</strong><small>CHYBY</small></div>
+          <div><strong id="result-speed">100 %</strong><small>RYCHLOST</small></div>
+          <div><strong id="result-bars">0</strong><small>TAKTY</small></div>
+        </div>
+        <div class="ai-result" id="result-ai">AI vyhodnocení se zobrazí zde.</div>
+        <button class="primary-button wide" id="result-again">HRÁT ZNOVU</button>
+        <button class="outline-button wide" data-screen="tabs-screen">ZPĚT KE SKLADBÁM</button>
+      </section>
+
+      <section id="stats-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button>
+        <h2>Tvoje statistiky</h2>
+        <div class="stats-grid">
+          <div class="stat-card"><strong id="stat-songs">0</strong><small>DOKONČENÉ SKLADBY</small></div>
+          <div class="stat-card"><strong id="stat-accuracy">0 %</strong><small>PRŮMĚRNÁ PŘESNOST</small></div>
+          <div class="stat-card"><strong id="stat-notes">0</strong><small>SPRÁVNÉ TÓNY</small></div>
+          <div class="stat-card"><strong id="stat-practice">0 min</strong><small>ČAS HRANÍ</small></div>
+        </div>
+        <h3>Výsledky podle skladeb</h3>
+        <div id="song-stats" class="song-stats"></div>
+        <button class="outline-button wide" id="reset-stats">VYMAZAT STATISTIKY</button>
+      </section>
+
+      <section id="settings-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button>
+        <h2>Nastavení</h2>
+        <div class="setting-row"><div><strong>Výchozí rychlost</strong><small>Tempo přehrávání tabulatury</small></div><select id="default-speed"><option value="1">100 %</option><option value="0.9">90 %</option><option value="0.8">80 %</option><option value="0.7">70 %</option><option value="0.6">60 %</option><option value="0.5">50 %</option><option value="0.4">40 %</option><option value="0.3">30 %</option><option value="0.2">20 %</option><option value="0.1">10 %</option><option value="0.05">5 %</option></select></div>
+        <div class="setting-row"><div><strong>Výchozí režim hraní</strong><small>Čekání na správný tón nebo plynulé hraní</small></div><select id="default-play-mode"><option value="wait">Čekat na tón</option><option value="flow">Plynule</option></select></div>
+        <div class="setting-row"><div><strong>Výchozí režim zvuku</strong><small>Original nebo Bass Sync</small></div><select id="default-sound-mode"><option value="original">Original</option><option value="bass-sync">Bass Sync</option></select></div>
+        <div class="setting-row"><div><strong>Odpočet před skladbou</strong><small>Příprava před začátkem</small></div><select id="countdown"><option value="3">3 sekundy</option><option value="5" selected>5 sekund</option><option value="0">Bez odpočtu</option></select></div>
+        <div class="setting-row"><div><strong>Jazyk</strong><small>Rozhraní aplikace</small></div><select id="language"><option value="cs">Čeština</option><option value="en">English (brzy)</option></select></div>
+        <p class="muted tiny">Rychlost, režimy a hlasitosti se ukládají v tomto telefonu. U nahraného MP3 nelze bez samostatných stop oddělit jednotlivé nástroje.</p>
+      </section>
+
+      <section id="editor-screen" class="screen">
+        <button class="back-button" data-screen="tabs-screen">← Zpět ke skladbám</button>
+        <p class="eyebrow">VLASTNÍ TABULATURA</p>
+        <h2>Editor tabů</h2>
+        <label class="editor-label">Název skladby<input id="tab-title" type="text" value="Moje tabulatura" maxlength="60"></label>
+        <label class="editor-label">Tempo BPM<input id="tab-bpm" type="number" min="30" max="240" value="90"></label>
+        <p class="muted">Vlož čtyři řádky ASCII tabulatury. Formát podporuje pražce a značky h, p, /, \, b, r, ~, x a PM (palm muting). Svislé čáry oddělují takty.</p>
+        <textarea id="tab-input" spellcheck="false">G|----------------|----------------|
+D|--------2---4---|--------4---2---|
+A|----2-----------|----2-----------|
+E|0-------0-------|0-------0-------|</textarea>
+        <div class="editor-actions">
+          <button class="secondary-button" id="parse-tab">NÁHLED TABU</button>
+          <button class="primary-button" id="save-tab">ULOŽIT TAB</button>
+        </div>
+        <div id="editor-message" class="info-note">Pražce 0 až 24. Každý uložený tab zůstane v tomto telefonu.</div>
+        <div id="editor-preview" class="editor-preview"></div>
+        <div class="saved-tabs" id="saved-tabs"></div>
+        <button class="outline-button wide" id="export-tabs">EXPORTOVAT MOJE TABY</button>
       </section>
 
       <section id="mic-test-screen" class="screen">
         <button class="back-button" data-screen="home-screen">← Zpět</button>
-        <p class="eyebrow">KALIBRACE A DIAGNOSTIKA</p>
-        <h2>Test mikrofonu</h2>
-        <p class="muted">Aplikace postupně poslechne čtyři prázdné struny. Zahraj vždy jednu čistou notu a nech ji krátce znít. Zvuk se nikam neodesílá.</p>
+        <p class="eyebrow">KALIBRACE MIKROFONU A AI</p>
+        <h2>Test rozpoznávání</h2>
+        <p class="muted">Zahraj postupně otevřené struny E, A, D a G. Mikrofon poslouchá přímo v telefonu, zvuk se nikam neodesílá.</p>
         <div class="mic-test-card">
-          <small id="mic-test-step">Připraveno k testu</small>
+          <small id="mic-test-step">PŘIPRAVENO K TESTU</small>
           <strong id="mic-test-note">E1</strong>
           <p id="mic-test-instruction">Stiskni tlačítko a povol přístup k mikrofonu.</p>
           <div class="mic-test-meter"><span id="mic-test-progress"></span></div>
@@ -71,61 +197,6 @@
           <div id="ai-profile">Zatím nejsou naučené žádné hodnoty.</div>
           <button class="outline-button wide" id="ai-reset">VYMAZAT NAUČENOU KALIBRACI</button>
         </div>
-      </section>
-
-      <section id="game-screen" class="screen">
-        <div class="game-top"><button class="back-button" id="exit-game">✕ Ukončit</button><div class="game-score">SKÓRE <strong id="score">0</strong></div></div>
-        <div class="game-meta"><span id="difficulty-label">ZAČÁTEČNÍK</span><span id="bpm-label">80 BPM</span><span id="combo-wrap">COMBO <b id="combo">0</b></span></div>
-        <div class="playfield">
-          <div class="lane-labels"><span>E</span><span>A</span><span>D</span><span>G</span></div>
-          <div class="lanes" id="lanes">
-            <div class="lane" data-string="E"></div><div class="lane" data-string="A"></div><div class="lane" data-string="D"></div><div class="lane" data-string="G"></div>
-            <div class="hit-line"></div>
-          </div>
-        </div>
-        <div class="game-feedback" id="feedback">Připrav se</div>
-        <div class="mic-controls"><button class="outline-button wide" id="mic-toggle">🎙 Zapnout mikrofon</button><small id="mic-status">Mikrofon vypnutý</small></div>
-        <div class="game-controls"><button class="lane-hit" data-lane="0">E</button><button class="lane-hit" data-lane="1">A</button><button class="lane-hit" data-lane="2">D</button><button class="lane-hit" data-lane="3">G</button></div>
-        <p class="hint" id="practice-hint">Klepni na strunu, která odpovídá zobrazené notě. V režimu čekání se cvičení posune až po správné volbě.</p>
-      </section>
-
-      <section id="results-screen" class="screen">
-        <p class="eyebrow">CVIČENÍ DOKONČENO</p><h2>Dobrá práce<span>.</span></h2>
-        <div class="result-score"><strong id="final-score">0</strong><small>SKÓRE</small></div>
-        <div class="result-grid"><div><strong id="final-accuracy">0%</strong><small>PŘESNOST</small></div><div><strong id="final-combo">0</strong><small>NEJ COMBO</small></div><div><strong id="final-hits">0</strong><small>ZÁSAHY</small></div></div>
-        <button class="primary-button wide" id="play-again">HRÁT ZNOVU</button><button class="outline-button wide" data-screen="home-screen">HLAVNÍ MENU</button>
-      </section>
-
-      <section id="stats-screen" class="screen">
-        <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Tvoje statistiky</h2>
-        <div class="stats-grid"><div class="stat-card"><strong id="stat-games">0</strong><small>ODEHRANÁ CVIČENÍ</small></div><div class="stat-card"><strong id="stat-best">0</strong><small>NEJLEPŠÍ SKÓRE</small></div><div class="stat-card"><strong id="stat-accuracy">0%</strong><small>PRŮMĚRNÁ PŘESNOST</small></div><div class="stat-card"><strong id="stat-combo">0</strong><small>NEJ DELŠÍ COMBO</small></div></div>
-        <button class="outline-button wide" id="reset-stats">VYMAZAT STATISTIKY</button>
-      </section>
-
-      <section id="settings-screen" class="screen">
-        <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Nastavení</h2>
-        <div class="setting-row"><div><strong>Obtížnost</strong><small>Ovlivní rychlost not</small></div><select id="difficulty"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option><option value="expert">Expert</option></select></div>
-        <div class="setting-row"><div><strong>Rychlost</strong><small>Tempo cvičení</small></div><select id="speed"><option value="0.05">5 %</option><option value="0.1">10 %</option><option value="0.15">15 %</option><option value="0.2">20 %</option><option value="0.25">25 %</option><option value="0.5">50 %</option><option value="0.75">75 %</option><option value="1" selected>100 %</option></select></div>
-        <div class="setting-row"><div><strong>Režim cvičení</strong><small>Bez časového tlaku</small></div><select id="practice-mode"><option value="wait">Čekat na správnou strunu</option><option value="flow">Plynulé cvičení</option></select></div>
-        <div class="setting-row"><div><strong>Odpočet</strong><small>Pauza před začátkem</small></div><select id="countdown"><option value="3">3 sekundy</option><option value="5" selected>5 sekund</option><option value="0">Bez odpočtu</option></select></div>
-        <div class="setting-row"><div><strong>Jazyk</strong><small>Jazyk aplikace</small></div><select id="language"><option value="cs">Čeština</option><option value="en">English (brzy)</option></select></div>
-        <p class="muted tiny">Test mikrofonu měří přesnost rozpoznávání otevřených strun. Výsledky se ukládají pouze v tomto telefonu a pomáhají porovnávat další kalibrace.</p>
-      </section>
-
-      <section id="editor-screen" class="screen">
-        <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Editor tabů</h2>
-        <p class="muted">Zapiš noty ve formátu STRUNA: PRAŽEC. Každý řádek je jedna nota.</p>
-        <textarea id="tab-input" spellcheck="false">E: 3
-A: 5
-D: 2
-G: 0
-A: 3
-D: 5
-E: 3
-G: 2</textarea>
-        <div class="editor-actions"><button class="secondary-button" id="save-tab">ULOŽIT TAB</button><button class="primary-button" id="play-tab">HRÁT TAB</button></div>
-        <p id="editor-message" class="muted tiny">Pražce 0 až 24. Uložení zůstane v tomto telefonu.</p>
-        <div id="saved-tabs" class="saved-tabs"></div>
       </section>
     </main>
   </div>
