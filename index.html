@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#6d3bd1">
+  <meta name="description" content="Bass Hero - rytmický trenažér baskytary">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <title>Bass Hero</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">BH</span><div><strong>BASS HERO</strong><small>PLAY YOUR BASS</small></div></div>
+      <button class="icon-button" id="settings-shortcut" aria-label="Nastavení">⚙</button>
+    </header>
+    <main>
+      <section id="home-screen" class="screen active">
+        <div class="hero">
+          <p class="eyebrow">VÍTEJ V BASS HERO</p>
+          <h1>Ovládni rytmus<span>.</span></h1>
+          <p class="muted">Trénuj přesnost, zlepšuj combo a posouvej svoje hraní dál.</p>
+          <button class="primary-button wide" data-screen="play-screen">HRÁT <span>▶</span></button>
+        </div>
+        <div class="menu-grid">
+          <button class="menu-card" data-screen="play-screen"><span class="menu-icon">♫</span><strong>Hrát</strong><small>Vyber cvičení</small></button>
+          <button class="menu-card" data-screen="stats-screen"><span class="menu-icon">▥</span><strong>Statistiky</strong><small>Tvůj progres</small></button>
+          <button class="menu-card" data-screen="settings-screen"><span class="menu-icon">⚙</span><strong>Nastavení</strong><small>Uprav si hru</small></button>
+          <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor</strong><small>Vlastní taby</small></button>
+        </div>
+        <p class="version">BASS HERO • PRVNÍ TESTOVACÍ VERZE</p>
+      </section>
+
+      <section id="play-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button>
+        <h2>Vyber cvičení</h2>
+        <p class="muted">Originální cvičení pro rozehrání. Další skladby půjde přidávat později.</p>
+        <article class="song-card">
+          <div class="song-art">♫</div><div class="song-info"><strong>První groove</strong><small>Začátečník • 4 struny • 80 BPM</small></div><span class="tag">DEMO</span>
+          <button class="primary-button" id="start-demo">HRÁT</button>
+        </article>
+        <article class="song-card">
+          <div class="song-art alt">♬</div><div class="song-info"><strong>Střídání strun</strong><small>Začátečník • 4 struny • 100 BPM</small></div><span class="tag">DEMO</span>
+          <button class="secondary-button" id="start-alternate">HRÁT</button>
+        </article>
+        <button class="outline-button wide" data-screen="editor-screen">＋ Vytvořit vlastní tab</button>
+      </section>
+
+      <section id="game-screen" class="screen">
+        <div class="game-top"><button class="back-button" id="exit-game">✕ Ukončit</button><div class="game-score">SKÓRE <strong id="score">0</strong></div></div>
+        <div class="game-meta"><span id="difficulty-label">EASY</span><span id="bpm-label">80 BPM</span><span>COMBO <b id="combo">0</b></span></div>
+        <div class="playfield">
+          <div class="lane-labels"><span>E</span><span>A</span><span>D</span><span>G</span></div>
+          <div class="lanes" id="lanes">
+            <div class="lane" data-string="E"></div><div class="lane" data-string="A"></div><div class="lane" data-string="D"></div><div class="lane" data-string="G"></div>
+            <div class="hit-line"></div>
+          </div>
+        </div>
+        <div class="game-feedback" id="feedback">Připrav se</div>
+        <div class="game-controls"><button class="lane-hit" data-lane="0">E</button><button class="lane-hit" data-lane="1">A</button><button class="lane-hit" data-lane="2">D</button><button class="lane-hit" data-lane="3">G</button></div>
+        <p class="hint">Klepni na správnou strunu ve chvíli, kdy nota dorazí k bílé čáře.</p>
+      </section>
+
+      <section id="results-screen" class="screen">
+        <p class="eyebrow">CVIČENÍ DOKONČENO</p><h2>Dobrá práce<span>.</span></h2>
+        <div class="result-score"><strong id="final-score">0</strong><small>SKÓRE</small></div>
+        <div class="result-grid"><div><strong id="final-accuracy">0%</strong><small>PŘESNOST</small></div><div><strong id="final-combo">0</strong><small>NEJ COMBO</small></div><div><strong id="final-hits">0</strong><small>ZÁSAHY</small></div></div>
+        <button class="primary-button wide" id="play-again">HRÁT ZNOVU</button><button class="outline-button wide" data-screen="home-screen">HLAVNÍ MENU</button>
+      </section>
+
+      <section id="stats-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Tvoje statistiky</h2>
+        <div class="stats-grid"><div class="stat-card"><strong id="stat-games">0</strong><small>ODEHRANÁ CVIČENÍ</small></div><div class="stat-card"><strong id="stat-best">0</strong><small>NEJLEPŠÍ SKÓRE</small></div><div class="stat-card"><strong id="stat-accuracy">0%</strong><small>PRŮMĚRNÁ PŘESNOST</small></div><div class="stat-card"><strong id="stat-combo">0</strong><small>NEJ DELŠÍ COMBO</small></div></div>
+        <button class="outline-button wide" id="reset-stats">VYMAZAT STATISTIKY</button>
+      </section>
+
+      <section id="settings-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Nastavení</h2>
+        <div class="setting-row"><div><strong>Obtížnost</strong><small>Ovlivní rychlost not</small></div><select id="difficulty"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option><option value="expert">Expert</option></select></div>
+        <div class="setting-row"><div><strong>Rychlost</strong><small>Tempo cvičení</small></div><select id="speed"><option value="0.5">50 %</option><option value="0.75">75 %</option><option value="1" selected>100 %</option></select></div>
+        <div class="setting-row"><div><strong>Jazyk</strong><small>Jazyk aplikace</small></div><select id="language"><option value="cs">Čeština</option><option value="en">English (brzy)</option></select></div>
+        <p class="muted tiny">Mikrofon a rozpoznávání skutečně zahraných tónů zatím nejsou zapnuté. Aktuální verze se ovládá klepáním na struny.</p>
+      </section>
+
+      <section id="editor-screen" class="screen">
+        <button class="back-button" data-screen="home-screen">← Zpět</button><h2>Editor tabů</h2>
+        <p class="muted">Zapiš noty ve formátu STRUNA: PRAŽEC. Každý řádek je jedna nota.</p>
+        <textarea id="tab-input" spellcheck="false">E: 3
+A: 5
+D: 2
+G: 0
+A: 3
+D: 5
+E: 3
+G: 2</textarea>
+        <div class="editor-actions"><button class="secondary-button" id="save-tab">ULOŽIT TAB</button><button class="primary-button" id="play-tab">HRÁT TAB</button></div>
+        <p id="editor-message" class="muted tiny">Pražce 0 až 24. Uložení zůstane v tomto telefonu.</p>
+        <div id="saved-tabs" class="saved-tabs"></div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
