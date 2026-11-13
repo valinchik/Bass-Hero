@@ -1,13 +1,16 @@
-# Bass Hero 1.5
+# Bass Hero 1.6
 
 Android app for bass-guitar tab practice.
 
-## Version 1.5
-- Full-song bass tabs with four color-coded strings (G, D, A, E).
-- Wait-for-correct-note and continuous playback modes.
-- Original and Bass Sync audio modes, playback speed from 100% to 5%.
-- Built-in original demo songs, short previews, and optional local audio-file playback.
-- ASCII tab import, Bass Hero JSON export/import, and local tab library.
-- Microphone pitch detection, adaptive per-string calibration, song statistics, and saved progress.
+## Version 1.6
+- Everything from v1.5: full-song bass tabs, Wait and Flow modes, playback speed, Original and Bass Sync modes, microphone pitch detection, adaptive calibration, statistics, and saved progress.
+- Local audio-to-tab prototype: import an MP3 or other supported audio file, analyze low-frequency pitch, and generate approximate bass notes with timestamps.
+- Generated notes are mapped to standard bass strings and frets and synchronized to the imported audio by converting detected audio timestamps to beats.
+- Imported audio can be stored in the phone's IndexedDB database and reused from the song library.
 
-Built-in songs are original demo material. Commercial recordings and third-party copyrighted tabs are not bundled. Imported audio stays on the device. A mixed MP3 cannot be split into separate instrument stems without separate audio tracks.
+## Important limitations
+- The audio analysis is an on-device signal-processing estimate, not a trained source-separation model.
+- It does not isolate the bass stem from a mixed recording. Drums, guitars, vocals, distortion, and harmonics can cause incorrect or missed notes.
+- The first version accepts audio clips up to 6 minutes and works best when the bass is clear in the mix. Review and correct generated notes where needed.
+- Imported audio remains local to the device. No audio is uploaded to a server.
+- Built-in songs are original demo material. Commercial recordings and third-party copyrighted tabs are not bundled.
