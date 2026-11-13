@@ -21,3 +21,11 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.app-shell{width
 @media(min-width:600px){.player-settings{grid-template-columns:repeat(3,1fr)}.tab-bar{width:180px;flex-basis:180px}.tab-string{height:40px}.song-card{padding:14px}.hero{padding-top:55px}}
 
 .note-focus button{grid-column:1/-1;width:100%;padding:10px;font-size:10px}
+
+.ai-audio-card{margin-top:16px;padding:14px;background:var(--panel);border:1px solid #ffffff18;border-radius:14px}
+.file-name{margin:10px 2px;color:#d8c7ff;font-size:11px;overflow-wrap:anywhere}
+.analysis-track{height:8px;margin:14px 0 8px;background:#0d0a14;border-radius:20px;overflow:hidden}
+.analysis-track span{display:block;width:0;height:100%;background:linear-gradient(90deg,#6d39ce,#b99aff);transition:width .15s}
+#ai-audio-analyze:disabled{opacity:.45;cursor:not-allowed}
+.library-actions{flex-wrap:wrap}
+.library-actions button{min-width:30%}
