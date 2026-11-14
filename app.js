@@ -14,6 +14,8 @@ const state = {
   progress:readJSON("bh-song-progress",()=>({})),globalStats:readJSON("bh-global-stats",()=>({completed:0,hits:0,misses:0,seconds:0})),
   aiProfile:readJSON("bh-ai-profile",DEFAULT_AI),audioSources:{},audioElement:null,audioUrl:null,audioContext:null,lastSynthStep:-1,guidePlayed:new Set(),
   micStream:null,micContext:null,micFrame:0,micEnabled:false,micStarting:false,micRequestId:0,lastDetectedAt:0,micTestActive:false,micTestIndex:0,micTestResults:[],micTestHistory:readJSON("bh-mic-tests",()=>[]),
+  micTargetActive:false,micTargetGoodFrames:0,micPitchCandidateHz:0,micPitchCandidateFrames:0,micAcceptedNoteId:null,micLastAcceptedAt:0,
+  audioClockActive:false,bassSyncIndex:0,showBeats:readJSON("bh-show-beats",()=>true),
   tabZoom:100,selectedNoteId:null
 };
 
@@ -25,6 +27,7 @@ state.savedTabs=Array.isArray(state.savedTabs)?state.savedTabs.filter(song=>song
 state.songStats=state.songStats&&typeof state.songStats==="object"&&!Array.isArray(state.songStats)?state.songStats:{};
 state.progress=state.progress&&typeof state.progress==="object"&&!Array.isArray(state.progress)?state.progress:{};
 state.micTestHistory=Array.isArray(state.micTestHistory)?state.micTestHistory.slice(-20):[];
+state.showBeats=state.showBeats!==false;
 const safeCount=value=>Number.isFinite(Number(value))&&Number(value)>=0?Math.floor(Number(value)):0;
 state.globalStats={
   completed:safeCount(state.globalStats?.completed),
@@ -184,11 +187,12 @@ function openSong(song){
   $("#sync-offset-value").textContent=(state.song.syncOffsetMs>0?"+":"")+state.song.syncOffsetMs+" ms";
   $("#tab-zoom").value=state.tabZoom;
   $("#tab-zoom-value").textContent=state.tabZoom+" %";
+  $("#show-beats").checked=state.showBeats;
   $("#note-editor-panel").hidden=true;
   $("#player-resume").style.display=state.resumeBeat>0?"inline-block":"none";
   $("#audio-file-label").textContent=state.audioSources[song.id]?"Vlastní audio připojeno":"Demo používá vytvořený doprovod";
   state.speed=Number($("#player-speed").value);state.playMode=$("#play-mode").value;state.soundMode=$("#sound-mode").value;
-  $("#sound-mode-note").textContent=state.soundMode==="bass-sync"?"Bass Sync zvýrazní rytmus a nástupy basové linky. U smíchaného MP3 zůstává původní mix pohromadě.":"Original přehraje připojenou nahrávku, nebo plnější demo doprovod.";
+  updateSoundModeNote();
   if(state.audioSources[song.id])setAudioSource(state.audioSources[song.id],false);
   else{setAudioSource(null,false);restoreAudioAsset(song.id);}
   renderTab();updatePlayerUI(0);show("player-screen");
@@ -204,6 +208,7 @@ function getNoteBeat(note){return state.song?(Number(note.beat)||0)+((Number(sta
 function renderTab(){
   const canvas=$("#tab-canvas");if(!canvas||!state.song)return;
   canvas.innerHTML="";
+  canvas.classList.toggle("has-beats",state.showBeats);
   const playhead=document.createElement("div");playhead.className="tab-playhead";playhead.id="tab-playhead";canvas.append(playhead);
   const zoom=(state.tabZoom||100)/100;
   for(let bar=0;bar<state.song.bars;bar++){
@@ -215,7 +220,16 @@ function renderTab(){
     const barWidth=Math.round(baseWidth*zoom);
     const block=document.createElement("div");block.className="tab-bar";block.dataset.bar=String(bar);
     block.style.width=barWidth+"px";block.style.flexBasis=barWidth+"px";
-    const label=document.createElement("div");label.className="bar-label";label.textContent=String(bar+1);block.append(label);
+    const label=document.createElement("div");label.className="bar-label";label.textContent="TAKT "+String(bar+1);block.append(label);
+    if(state.showBeats){
+      block.classList.add("has-beat-ruler");
+      const ruler=document.createElement("div");ruler.className="beat-ruler";
+      for(let beat=0;beat<4;beat++){
+        const mark=document.createElement("span");mark.textContent=String(beat+1);
+        mark.style.left=(12+(beat/4)*(barWidth-24))+"px";ruler.append(mark);
+      }
+      block.append(ruler);
+    }
     TOP_STRINGS.forEach(str=>{
       const row=document.createElement("div");row.className="tab-string";row.dataset.string=str;
       const sl=document.createElement("span");sl.className="string-label";sl.textContent=str;row.append(sl);
@@ -260,7 +274,7 @@ function updatePlayerUI(beat){
     const currentBar=bars[barIndex],width=currentBar?(currentBar.offsetWidth||154):154;
     x+=Math.max(0,Math.min(1,(safeBeat-barIndex*4)/4))*width;playhead.style.left=x+"px";
     const viewport=$("#tab-viewport");
-    if(state.playing||state.waiting){const desired=Math.max(0,x-viewport.clientWidth*.32);if(Math.abs(viewport.scrollLeft-desired)>55)viewport.scrollTo({left:desired,behavior:"smooth"});}
+    if(state.playing||state.waiting){const desired=Math.max(0,x-viewport.clientWidth*.32);if(Math.abs(viewport.scrollLeft-desired)>3)viewport.scrollLeft=desired;}
   }
   state.song.notes.forEach(n=>{
     const mark=document.querySelector('[data-note-id="'+n.id+'"]');
@@ -348,6 +362,10 @@ $("#sync-offset").onchange=e=>{
 };
 $("#tab-zoom").oninput=e=>{
   state.tabZoom=Math.max(35,Math.min(160,Number(e.target.value)||100));$("#tab-zoom-value").textContent=state.tabZoom+" %";
+  renderTab();updatePlayerUI(state.currentBeat);
+};
+$("#show-beats").onchange=e=>{
+  state.showBeats=Boolean(e.target.checked);localStorage.setItem("bh-show-beats",JSON.stringify(state.showBeats));
   renderTab();updatePlayerUI(state.currentBeat);
 };
 $("#tab-fit").onclick=()=>{
