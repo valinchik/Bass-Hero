@@ -1032,6 +1032,7 @@ async function startMic(){
     if(requestId!==state.micRequestId)return;
     stopMic();
     state.micTestActive=false;
+    if($(".screen.active")?.id==="mic-test-screen")renderMicTest();
     const message="Mikrofon se nepodařilo zapnout ["+(error.name||"neznámá chyba")+"]: "+(error.message||error);
     const micStatus=$("#mic-status");if(micStatus)micStatus.textContent=message;
     const feedback=$("#player-feedback");if(feedback)feedback.textContent=message;
@@ -1113,7 +1114,7 @@ function renderMicTest(){
   $("#mic-test-progress").style.width=(Math.min(done,total)/total*100)+"%";
   $("#mic-test-step").textContent=done>=total?"TEST DOKONČEN":"KROK "+(done+1)+" / "+total;
   $("#mic-test-note").textContent=done>=total?"HOTOVO":current.name;
-  $("#mic-test-instruction").textContent=done>=total?"Test dokončen.":"Zahraj "+(current.fret===0?"otevřenou strunu ":"tón ")+current.name+".";
+  $("#mic-test-instruction").textContent=done>=total?"Test dokončen.":"Zahraj "+(current.fret===0||current.fret===undefined?"otevřenou strunu ":"tón ")+current.name+".";
   $("#mic-test-start").textContent=state.micTestActive?"ZASTAVIT TEST":done>=total?"OPAKOVAT TEST":"SPUSTIT TEST";
   $("#mic-test-mode").disabled=state.micTestActive;
   $("#mic-target-string").disabled=state.micTestActive;
@@ -1169,6 +1170,7 @@ function completeMicTest(){
   const report={date:new Date().toISOString(),mode:state.micTestMode,accuracy:state.aiProfile.lastAccuracy,results:state.micTestResults};
   state.micTestHistory.push(report);state.micTestHistory=state.micTestHistory.slice(-20);
   localStorage.setItem("bh-mic-tests",JSON.stringify(state.micTestHistory));
+  $("#mic-test-mode").disabled=false;$("#mic-target-string").disabled=false;$("#mic-target-fret").disabled=false;
   $("#mic-test-step").textContent="TEST DOKONČEN";$("#mic-test-note").textContent="100 %";
   $("#mic-test-instruction").textContent="Všechny požadované tóny byly rozpoznány.";
   $("#mic-test-live").textContent=state.micTestResults.map(x=>x.string+" "+x.fret+": "+x.detected.toFixed(1)+" Hz").join(" · ");
