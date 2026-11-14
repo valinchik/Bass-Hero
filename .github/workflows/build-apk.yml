@@ -35,6 +35,43 @@ jobs:
         run: npm install
       - name: Add Android platform
         run: npx cap add android
+      - name: Add Android back confirmation
+        run: |
+          mkdir -p android/app/src/main/java/com/valinchik/basshero
+          cat > android/app/src/main/java/com/valinchik/basshero/MainActivity.java <<'JAVA'
+          package com.valinchik.basshero;
+
+          import android.app.AlertDialog;
+          import android.webkit.ValueCallback;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onBackPressed() {
+                  if (bridge == null || bridge.getWebView() == null) {
+                      super.onBackPressed();
+                      return;
+                  }
+                  bridge.getWebView().evaluateJavascript(
+                      "(document.querySelector('.screen.active')?.id === 'home-screen').toString()",
+                      value -> {
+                          if ("true".equals(value)) {
+                              new AlertDialog.Builder(this)
+                                  .setTitle("Ukončit Bass Hero?")
+                                  .setMessage("Opravdu chceš opustit aplikaci?")
+                                  .setNegativeButton("ZŮSTAT", (dialog, which) -> dialog.dismiss())
+                                  .setPositiveButton("OPUSTIT", (dialog, which) -> finish())
+                                  .show();
+                          } else if (bridge != null && bridge.getWebView() != null && bridge.getWebView().canGoBack()) {
+                              bridge.getWebView().goBack();
+                          } else {
+                              super.onBackPressed();
+                          }
+                      }
+                  );
+              }
+          }
+          JAVA
       - name: Add microphone permission
         run: |
           python3 - <<'PY'
