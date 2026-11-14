@@ -17,10 +17,37 @@ const state = {
   tabZoom:100,selectedNoteId:null
 };
 
-state.musicVolume=Number(localStorage.getItem("bh-music-volume")||".65");
-state.guideVolume=Number(localStorage.getItem("bh-guide-volume")||".15");
-state.musicVolume=Math.max(0,Math.min(1,state.musicVolume));
-state.guideVolume=Math.max(0,Math.min(1,state.guideVolume));
+const storedMusicVolume=Number(localStorage.getItem("bh-music-volume")??".65");
+const storedGuideVolume=Number(localStorage.getItem("bh-guide-volume")??".15");
+state.musicVolume=Number.isFinite(storedMusicVolume)?Math.max(0,Math.min(1,storedMusicVolume)):.65;
+state.guideVolume=Number.isFinite(storedGuideVolume)?Math.max(0,Math.min(1,storedGuideVolume)):.15;
+state.savedTabs=Array.isArray(state.savedTabs)?state.savedTabs.filter(song=>song&&typeof song.id==="string"&&Array.isArray(song.notes)&&song.notes.length>0):[];
+state.songStats=state.songStats&&typeof state.songStats==="object"&&!Array.isArray(state.songStats)?state.songStats:{};
+state.progress=state.progress&&typeof state.progress==="object"&&!Array.isArray(state.progress)?state.progress:{};
+state.micTestHistory=Array.isArray(state.micTestHistory)?state.micTestHistory.slice(-20):[];
+const safeCount=value=>Number.isFinite(Number(value))&&Number(value)>=0?Math.floor(Number(value)):0;
+state.globalStats={
+  completed:safeCount(state.globalStats?.completed),
+  hits:safeCount(state.globalStats?.hits),
+  misses:safeCount(state.globalStats?.misses),
+  seconds:Number.isFinite(Number(state.globalStats?.seconds))&&Number(state.globalStats.seconds)>=0?Number(state.globalStats.seconds):0
+};
+const storedAI=state.aiProfile&&typeof state.aiProfile==="object"?state.aiProfile:{};
+const storedAIStrings=storedAI.strings&&typeof storedAI.strings==="object"?storedAI.strings:{};
+state.aiProfile={
+  tests:safeCount(storedAI.tests),
+  lastAccuracy:Number.isFinite(Number(storedAI.lastAccuracy))?Math.max(0,Math.min(100,Number(storedAI.lastAccuracy))):0,
+  strings:Object.fromEntries(STRINGS.map(string=>{
+    const value=storedAIStrings[string]&&typeof storedAIStrings[string]==="object"?storedAIStrings[string]:{};
+    const finite=(item,fallback)=>Number.isFinite(Number(item))?Number(item):fallback;
+    return [string,{
+      offsetCents:Math.max(-100,Math.min(100,finite(value.offsetCents,0))),
+      samples:safeCount(value.samples),
+      meanAbsError:Math.max(0,finite(value.meanAbsError,0)),
+      errors:safeCount(value.errors)
+    }];
+  }))
+};
 function makeSong(id,title,bpm,bars,description){
   const notes=[];
   bars.forEach((bar,barIndex)=>bar.forEach((item)=>{
@@ -88,8 +115,12 @@ const DEMO_SONGS = [
 ];
 
 function show(id){
-  if(id!=="player-screen" && state.micTestActive){state.micTestActive=false;stopMic();}
-  $$(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
+  const currentScreen=$(".screen.active")?.id;
+  if(currentScreen!==id&&state.micEnabled){
+    state.micTestActive=false;
+    stopMic();
+  }
+  $(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
   if(id==="stats-screen")renderStats();
   if(id==="editor-screen")renderSavedTabs();
   if(id==="mic-test-screen")renderMicTest();
@@ -129,9 +160,12 @@ function openSong(song){
   const progress=state.progress[song.id];
   state.resumeBeat=progress&&progress.beat>0&&progress.beat<song.totalBeats?progress.beat:0;
   $("#song-title").textContent=song.title;$("#song-subtitle").textContent=song.bpm+" BPM · "+song.bars+" taktů · "+song.description;
-  $("#play-mode").value=localStorage.getItem("bh-play-mode")||"wait";
-  $("#sound-mode").value=localStorage.getItem("bh-sound-mode")||"original";
-  $("#player-speed").value=localStorage.getItem("bh-speed")||"1";
+  const savedPlayMode=localStorage.getItem("bh-play-mode");
+  const savedSoundMode=localStorage.getItem("bh-sound-mode");
+  const savedSpeed=localStorage.getItem("bh-speed");
+  $("#play-mode").value=["wait","flow"].includes(savedPlayMode)?savedPlayMode:"wait";
+  $("#sound-mode").value=["original","bass-sync"].includes(savedSoundMode)?savedSoundMode:"original";
+  $("#player-speed").value=[...$("#player-speed").options].some(option=>option.value===savedSpeed)?savedSpeed:"1";
   $("#player-bpm").value=state.song.bpm;
   $("#sync-offset").value=state.song.syncOffsetMs;
   $("#sync-offset-value").textContent=(state.song.syncOffsetMs>0?"+":"")+state.song.syncOffsetMs+" ms";
