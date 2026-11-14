@@ -33,3 +33,12 @@ Android app for bass-guitar tab practice.
 
 ## Version 1.8 note
 Bass Sync plays the bass line represented by the generated or edited tab over the original mix. It does not separate a clean bass stem from a mixed recording, so errors in automatic pitch detection may still need manual correction.
+
+## Version 1.9
+- Unified microphone tests: open-string calibration (E/A/D/G) and a selected string/fret (0–24) now use the same screen, start/stop control, live feedback, progress display, and result flow.
+- Expanded on-device adaptive learning. Confirmed microphone notes and accepted playing notes update per-string pitch calibration, with the profile saved locally between launches.
+- Manual tab corrections save preferred string/fret positions for the corrected pitch. Future MP3-to-tab conversion reuses those preferences when that same pitch is encountered.
+- Learning data stays on the device and can be reset from the AI panel.
+
+## Version 1.9 learning limitations
+This is local adaptive signal-processing and preference memory, not a remotely trained neural network. It learns per-string tuning offsets from notes the app accepts and remembers fingering preferences from manual tab edits. It does not independently understand every musical arrangement, and it cannot reliably separate bass from a full mixed recording.
