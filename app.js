@@ -129,7 +129,7 @@ function show(id,fromBack=false){
     stopMic();
   }
   if(currentScreen==="player-screen"&&id!=="player-screen")stopPlayback(false);
-  $(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
+  $$(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
   if(id==="stats-screen")renderStats();
   if(id==="editor-screen")renderSavedTabs();
   if(id==="mic-test-screen")renderMicTest();
