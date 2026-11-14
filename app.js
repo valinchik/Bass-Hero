@@ -835,7 +835,7 @@ async function startMic(){
       state.micFrame=requestAnimationFrame(detect);
     };detect();
   }catch(error){
-    stopMic();const message="Mikrofon se nepodařilo zapnout: "+(error.message||error);
+    stopMic();const message="Mikrofon se nepodařilo zapnout ["+(error.name||"neznámá chyba")+"]: "+(error.message||error);
     $("#mic-status").textContent=message;$("#player-feedback").textContent=message;$("#mic-test-live").textContent=message;
   }
 }
