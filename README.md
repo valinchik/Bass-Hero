@@ -1,8 +1,8 @@
-# Bass Hero 1.7
+# Bass Hero 1.8
 
 Android app for bass-guitar tab practice.
 
-## Version 1.7
+## Version 1.8
 - Everything from v1.6: local MP3-to-bass-note estimation, tab player, Wait and Flow modes, microphone pitch detection, adaptive calibration, stats, and saved progress.
 - Local tempo estimation from the audio envelope, with an optional manually supplied BPM.
 - BPM can be changed after analysis while preserving note positions in real time.
@@ -21,3 +21,15 @@ Android app for bass-guitar tab practice.
 - Audio clips are limited to 6 minutes. Review and correct generated notes where needed.
 - Imported audio remains local to the device. No audio is uploaded to a server.
 - Built-in songs are original demo material. Commercial recordings and third-party copyrighted tabs are not bundled.
+
+
+## Version 1.8
+- Reworked the song screen so the tab and playback controls stay prominent, with advanced settings, microphone/volume, and tab editing grouped into collapsible sections.
+- Added an option to show or hide beat numbers above each bar.
+- Added a selectable microphone target: string E/A/D/G and fret 0-24.
+- Improved bass pitch detection with a normalized periodicity check and multiple stable samples before accepting a note.
+- The audio element is now the timing reference while a custom recording is playing, reducing drift between the recording, playhead, and tab.
+- Bass Sync now plays the bass notes represented by the tab in time with the original recording, in addition to the beat cues.
+
+## Version 1.8 note
+Bass Sync plays the bass line represented by the generated or edited tab over the original mix. It does not separate a clean bass stem from a mixed recording, so errors in automatic pitch detection may still need manual correction.
