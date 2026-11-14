@@ -114,18 +114,31 @@ const DEMO_SONGS = [
   ],"Rychlejší melodická linka · 16 taktů")
 ];
 
-function show(id){
+const screenHistory=[];
+function show(id,fromBack=false){
   const currentScreen=$(".screen.active")?.id;
+  if(!document.getElementById(id))return;
+  if(currentScreen!==id&&!fromBack){
+    if(currentScreen)screenHistory.push(currentScreen);
+    try{history.pushState({bassHeroScreen:id},"","#"+id);}catch(_){}
+  }else if(fromBack&&screenHistory.length){
+    screenHistory.pop();
+  }
   if(currentScreen!==id&&(state.micEnabled||state.micStarting||state.micTestActive)){
     state.micTestActive=false;
     stopMic();
   }
-  $$(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
+  if(currentScreen==="player-screen"&&id!=="player-screen")stopPlayback(false);
+  $(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
   if(id==="stats-screen")renderStats();
   if(id==="editor-screen")renderSavedTabs();
   if(id==="mic-test-screen")renderMicTest();
   if(id==="tabs-screen")renderSongList();
 }
+window.addEventListener("popstate",event=>{
+  const previous=screenHistory.length?screenHistory[screenHistory.length-1]:"home-screen";
+  show(event.state?.bassHeroScreen||previous,true);
+});
 $$("[data-screen]").forEach(btn=>btn.addEventListener("click",()=>show(btn.dataset.screen)));
 $("#settings-shortcut").onclick=()=>show("settings-screen");
 $("#open-editor").onclick=()=>show("editor-screen");
