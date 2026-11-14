@@ -13,7 +13,7 @@ const state = {
   savedTabs:readJSON("bh-saved-tabs",()=>[]),songStats:readJSON("bh-song-stats",()=>({})),
   progress:readJSON("bh-song-progress",()=>({})),globalStats:readJSON("bh-global-stats",()=>({completed:0,hits:0,misses:0,seconds:0})),
   aiProfile:readJSON("bh-ai-profile",DEFAULT_AI),audioSources:{},audioElement:null,audioUrl:null,audioContext:null,lastSynthStep:-1,guidePlayed:new Set(),
-  micStream:null,micContext:null,micFrame:0,micEnabled:false,lastDetectedAt:0,micTestActive:false,micTestIndex:0,micTestResults:[],micTestHistory:readJSON("bh-mic-tests",()=>[]),
+  micStream:null,micContext:null,micFrame:0,micEnabled:false,micStarting:false,micRequestId:0,lastDetectedAt:0,micTestActive:false,micTestIndex:0,micTestResults:[],micTestHistory:readJSON("bh-mic-tests",()=>[]),
   tabZoom:100,selectedNoteId:null
 };
 
@@ -116,7 +116,7 @@ const DEMO_SONGS = [
 
 function show(id){
   const currentScreen=$(".screen.active")?.id;
-  if(currentScreen!==id&&(state.micEnabled||state.micTestActive)){
+  if(currentScreen!==id&&(state.micEnabled||state.micStarting||state.micTestActive)){
     state.micTestActive=false;
     stopMic();
   }
@@ -853,23 +853,49 @@ function recordAI(string,cents,ok){
 }
 
 function stopMic(){
-  state.micEnabled=false;if(state.micFrame)cancelAnimationFrame(state.micFrame);
-  if(state.micStream)state.micStream.getTracks().forEach(t=>t.stop());
-  if(state.micContext)state.micContext.close().catch(()=>{});
+  state.micRequestId++;
+  state.micStarting=false;
+  state.micEnabled=false;
+  if(state.micFrame)cancelAnimationFrame(state.micFrame);
+  if(state.micStream)state.micStream.getTracks().forEach(track=>track.stop());
+  if(state.micContext&&state.micContext.state!=="closed")state.micContext.close().catch(()=>{});
   state.micStream=null;state.micContext=null;state.micFrame=0;
-  $("#mic-toggle").textContent="ZAPNOUT MIKROFON";$("#mic-status").textContent="Mikrofon vypnutý";
+  $("#mic-toggle").disabled=false;$("#mic-toggle").textContent="ZAPNOUT MIKROFON";
+  $("#mic-test-start").disabled=false;
+  $("#mic-status").textContent="Mikrofon vypnutý";
 }
 async function startMic(){
+  if(state.micEnabled||state.micStarting)return;
+  const requestId=++state.micRequestId;
+  const requestedScreen=$(".screen.active")?.id||"";
+  state.micStarting=true;
+  $("#mic-toggle").disabled=true;$("#mic-toggle").textContent="ŽÁDÁM OPRÁVNĚNÍ…";
+  if(requestedScreen==="mic-test-screen")$("#mic-test-start").disabled=true;
   try{
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Mikrofon není dostupný. Zkontroluj oprávnění aplikace.");
-    state.micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    state.micContext=new (window.AudioContext||window.webkitAudioContext)();await state.micContext.resume();
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      const error=new Error("Mikrofon není dostupný. Zkontroluj oprávnění aplikace.");
+      error.name="NotSupportedError";throw error;
+    }
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    if(requestId!==state.micRequestId||$(".screen.active")?.id!==requestedScreen){
+      stream.getTracks().forEach(track=>track.stop());
+      return;
+    }
+    state.micStream=stream;
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContextClass)throw new Error("Toto zařízení nepodporuje Web Audio.");
+    state.micContext=new AudioContextClass();
+    await state.micContext.resume();
+    if(requestId!==state.micRequestId||$(".screen.active")?.id!==requestedScreen){
+      stopMic();return;
+    }
     const source=state.micContext.createMediaStreamSource(state.micStream),analyser=state.micContext.createAnalyser();
     analyser.fftSize=8192;analyser.smoothingTimeConstant=.05;source.connect(analyser);
-    const buffer=new Float32Array(analyser.fftSize);state.micEnabled=true;
-    $("#mic-toggle").textContent="VYPNOUT MIKROFON";$("#mic-status").textContent="Mikrofon aktivní · poslouchám";
+    const buffer=new Float32Array(analyser.fftSize);state.micEnabled=true;state.micStarting=false;
+    $("#mic-toggle").disabled=false;$("#mic-toggle").textContent="VYPNOUT MIKROFON";
+    $("#mic-status").textContent="Mikrofon aktivní · poslouchám";
     const detect=()=>{
-      if(!state.micEnabled)return;
+      if(!state.micEnabled||!state.micContext)return;
       analyser.getFloatTimeDomainData(buffer);const hz=detectPitch(buffer,state.micContext.sampleRate);
       if(hz>30&&hz<450){
         if(state.micTestActive)handleMicTestPitch(hz);
@@ -878,7 +904,9 @@ async function startMic(){
       state.micFrame=requestAnimationFrame(detect);
     };detect();
   }catch(error){
-    stopMic();const message="Mikrofon se nepodařilo zapnout ["+(error.name||"neznámá chyba")+"]: "+(error.message||error);
+    if(requestId!==state.micRequestId)return;
+    stopMic();
+    const message="Mikrofon se nepodařilo zapnout ["+(error.name||"neznámá chyba")+"]: "+(error.message||error);
     $("#mic-status").textContent=message;$("#player-feedback").textContent=message;$("#mic-test-live").textContent=message;
   }
 }
