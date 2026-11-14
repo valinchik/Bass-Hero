@@ -148,9 +148,9 @@ function openSong(song){
   $("#player-feedback").textContent="Připraveno. Zapni mikrofon a spusť skladbu.";
 }
 function previewSong(song){
-  openSong(song);state.previewPreviousMode=state.playMode;state.previewing=true;state.playMode="flow";$("#play-mode").value="flow";
+  openSong(song);
   $("#player-feedback").textContent="Přehrává se krátká ukázka skladby.";
-  startPlayer(true);
+  startPlayer(true,false);
 }
 function getGlobalOffsetBeat(){return state.song?(Number(state.song.syncOffsetMs)||0)*state.song.bpm/60000:0;}
 function getNoteBeat(note){return state.song?(Number(note.beat)||0)+((Number(state.song.syncOffsetMs)||0)+(Number(note.offsetMs)||0))*state.song.bpm/60000:(Number(note.beat)||0);}
@@ -238,10 +238,14 @@ function saveSelectedNote(){
   if(!state.song||!state.selectedNoteId)return;
   const note=state.song.notes.find(n=>n.id===state.selectedNoteId);if(!note)return;
   note.string=$("#note-edit-string").value;note.fret=Math.max(0,Math.min(24,Math.round(Number($("#note-edit-fret").value)||0)));
-  note.display=String(note.fret);const technique=$("#note-edit-technique").value;
-  if(technique!=="__keep__")note.technique=technique;
+  const technique=$("#note-edit-technique").value;
+  if(technique!=="__keep__"){
+    note.technique=technique;
+    note.muted=technique==="muted note";
+  }
+  note.display=note.muted?"x":String(note.fret);
   note.offsetMs=Math.max(-500,Math.min(500,Number($("#note-edit-offset").value)||0));
-  $("#note-edit-title").textContent="Upraveno · "+note.string+" "+note.fret;renderTab();
+  $("#note-edit-title").textContent="Upraveno · "+note.string+" "+note.display;renderTab();
 }
 function reviewAndRepairTab(){
   if(!state.song)return;const notes=[...state.song.notes].sort((x,y)=>x.beat-y.beat);let corrected=0,flagged=0;
@@ -669,13 +673,18 @@ function saveSongProgress(){
 }
 function startPlayer(isPreview,resume){
   if(!state.song)return;
+  stopPlayback(false);
   show("player-screen");
-  if(state.playing||state.waiting)stopPlayback(false);
+  if(isPreview){
+    state.previewPreviousMode=state.playMode;
+    state.playMode="flow";
+    $("#play-mode").value="flow";
+  }
   state.previewing=Boolean(isPreview);state.waiting=false;
   state.currentIndex=0;state.song.notes.forEach(n=>{n.status="pending";n.wrongRecorded=false;});
   state.hits=0;state.misses=0;state.guidePlayed=new Set();
   let fromBeat=resume?state.resumeBeat||0:0;
-  state.currentIndex=state.song.notes.findIndex(n=>n.beat>=fromBeat);
+  state.currentIndex=state.song.notes.findIndex(n=>getNoteBeat(n)>=fromBeat);
   if(state.currentIndex<0)state.currentIndex=state.song.notes.length;
   state.currentBeat=fromBeat;state.startBeat=fromBeat;
   renderTab();updatePlayerUI(fromBeat);
@@ -729,7 +738,7 @@ function confirmMutedNote(){
   if(state.playing&&state.playMode==="flow"){
     const note=findNextNote();if(!note||!note.muted)return;
     const beat=state.startBeat+(performance.now()-state.startAt)/(60000/state.song.bpm/state.speed);
-    if(beat>=note.beat-.45&&beat<=note.beat+.62){
+    if(beat>=getNoteBeat(note)-.45&&beat<=getNoteBeat(note)+.62){
       setNoteStatus(note,"hit");state.hits++;state.currentIndex=state.song.notes.indexOf(note)+1;
       $("#player-feedback").textContent="Tlumený tón potvrzen · "+note.string;updatePlayerUI(beat);
     }
@@ -906,8 +915,14 @@ $("#ai-reset").onclick=()=>{state.aiProfile=DEFAULT_AI();localStorage.setItem("b
 renderMicTest();
 
 function parseAsciiTab(text,title,bpm){
-  const rows={};text.split(/\r?\n/).forEach(line=>{
-    const match=line.match(/^\s*([GDAE])\s*\|(.*)$/i);if(match)rows[match[1].toUpperCase()]=match[2].replace(/\s+$/,"");
+  const rows={};
+  text.split(/\r?\n/).forEach(line=>{
+    const match=line.match(/^\s*([GDAE])\s*\|(.*)$/i);
+    if(match){
+      const string=match[1].toUpperCase();
+      const content=match[2].trim().replace(/^\|+|\|+$/g,"");
+      rows[string]=rows[string]?rows[string]+"|"+content:content;
+    }
   });
   if(!["G","D","A","E"].every(s=>typeof rows[s]==="string"))throw new Error("Tab musí obsahovat čtyři řádky označené G, D, A a E.");
   const splitRows={};let barCount=0;
@@ -918,7 +933,7 @@ function parseAsciiTab(text,title,bpm){
     STRINGS.forEach(string=>{
       const segment=splitRows[string][bar]||"";
       const regex=/(\d{1,2}(?:[hp\/\\b]\d{1,2}|~)?r?|x)/gi;let match;
-      const hasPalmMuting=/\bPM\b/i.test(text);
+      const hasPalmMuting=/\bPM\b/i.test(segment);
       while((match=regex.exec(segment))!==null){
         const raw=match[1];const first=raw.match(/^(\d{1,2})/);const muted=/^x$/i.test(raw);
         let fret=muted?0:Number(first?first[1]:0);if(fret>24)continue;
@@ -946,13 +961,26 @@ function parseAsciiTab(text,title,bpm){
 }
 function normalizeImportedSong(data){
   if(!data||!Array.isArray(data.notes)||!data.notes.length)throw new Error("Soubor neobsahuje platné noty.");
+  if(data.notes.length>100000)throw new Error("Tabulatura obsahuje příliš mnoho not.");
   const notes=data.notes.map((n,i)=>{
-    const string=String(n.string||n.lane||"").toUpperCase();const fret=Number(n.fret);
-    if(!STRINGS.includes(string)||!Number.isFinite(fret)||fret<0||fret>24)throw new Error("Některá nota má neplatnou strunu nebo pražec.");
-    return {id:"json-"+i,beat:Math.max(0,Number(n.beat)||0),string,fret,duration:Math.max(.125,Number(n.duration)||.5),technique:String(n.technique||""),display:String(n.display||fret),status:"pending",wrongRecorded:false};
+    const string=String(n.string||n.lane||"").toUpperCase();
+    const rawFret=Number(n.fret);
+    const rawBeat=Number(n.beat??0);
+    const rawDuration=Number(n.duration??.5);
+    if(!STRINGS.includes(string)||!Number.isFinite(rawFret)||rawFret<0||rawFret>24||!Number.isFinite(rawBeat)||rawBeat<0)throw new Error("Některá nota má neplatnou strunu, pražec nebo čas.");
+    const fret=Math.round(rawFret);
+    const duration=Number.isFinite(rawDuration)&&rawDuration>0?Math.max(.125,Math.min(16,rawDuration)):.5;
+    const rawOffset=Number(n.offsetMs);
+    const offsetMs=Number.isFinite(rawOffset)?Math.max(-500,Math.min(500,rawOffset)):0;
+    const muted=Boolean(n.muted)||String(n.display||"").toLowerCase()==="x"||String(n.technique||"")==="muted note";
+    return {id:"json-"+i,beat:rawBeat,string,fret,duration,technique:String(n.technique||""),display:muted?"x":String(n.display||fret),offsetMs,muted,status:"pending",wrongRecorded:false};
   }).sort((a,b)=>a.beat-b.beat);
-  const totalBeats=Math.max(4,Number(data.totalBeats)||Math.ceil((notes[notes.length-1].beat+1)/4)*4);
-  return {id:"custom-"+Date.now(),title:String(data.title||"Importovaná skladba").slice(0,60),bpm:Math.max(30,Math.min(240,Number(data.bpm)||90)),bars:Math.ceil(totalBeats/4),totalBeats,notes,description:"Vlastní importovaná tabulatura"};
+  const inferredBeats=Math.ceil((notes[notes.length-1].beat+notes[notes.length-1].duration)/4)*4;
+  const rawTotalBeats=Number(data.totalBeats);
+  const totalBeats=Number.isFinite(rawTotalBeats)&&rawTotalBeats>=4?Math.max(4,Math.min(100000,rawTotalBeats)):Math.max(4,inferredBeats);
+  const rawSyncOffset=Number(data.syncOffsetMs);
+  const syncOffsetMs=Number.isFinite(rawSyncOffset)?Math.max(-500,Math.min(500,rawSyncOffset)):0;
+  return {id:"custom-"+Date.now(),title:String(data.title||"Importovaná skladba").slice(0,60),bpm:Math.max(30,Math.min(240,Number(data.bpm)||90)),bars:Math.ceil(totalBeats/4),totalBeats,syncOffsetMs,notes,description:"Vlastní importovaná tabulatura"};
 }
 function saveCustomSong(song){
   song.id=song.id&&song.id.startsWith("custom-")?song.id:"custom-"+Date.now();
@@ -1013,7 +1041,7 @@ $("#tab-file").onchange=e=>{
   reader.onerror=()=>alert("Soubor se nepodařilo přečíst.");reader.readAsText(file);
 };
 $("#export-tabs").onclick=()=>{
-  const data={format:"bass-hero-tab",version:1,songs:state.savedTabs.map(song=>({title:song.title,bpm:song.bpm,bars:song.bars,totalBeats:song.totalBeats,notes:song.notes.map(n=>({beat:n.beat,string:n.string,fret:n.fret,duration:n.duration,technique:n.technique,display:n.display}))}))};
+  const data={format:"bass-hero-tab",version:1,songs:state.savedTabs.map(song=>({title:song.title,bpm:song.bpm,bars:song.bars,totalBeats:song.totalBeats,syncOffsetMs:song.syncOffsetMs||0,notes:song.notes.map(n=>({beat:n.beat,string:n.string,fret:n.fret,duration:n.duration,technique:n.technique,display:n.display,offsetMs:n.offsetMs||0,muted:Boolean(n.muted)}))}))};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="bass-hero-tabs.json";a.click();URL.revokeObjectURL(url);
 };
 
