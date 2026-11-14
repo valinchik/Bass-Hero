@@ -48,3 +48,45 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.app-shell{width
 .note-edit-grid input,.note-edit-grid select{min-width:0;width:100%;background:#302544;color:#fff;border:1px solid #655080;border-radius:8px;padding:8px;font-size:11px}
 .tab-note{cursor:pointer;user-select:none}
 .tab-note.selected-note{outline:2px solid #fff;outline-offset:2px;background:#6f4ab4}
+
+
+/* Bass Hero 1.8 player layout */
+.tab-heading{gap:10px;flex-wrap:wrap}
+.beats-toggle{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #51416e;border-radius:9px;background:#1b1628;color:#d9c8ff;font-size:10px;font-weight:750;white-space:nowrap}
+.beats-toggle input{width:16px;height:16px;margin:0;accent-color:var(--purple)}
+.tab-bar.has-beat-ruler{padding-top:34px}
+.beat-ruler{position:absolute;top:15px;left:0;right:0;height:13px;color:#c4b2e8;font-size:9px;font-weight:800;pointer-events:none}
+.beat-ruler span{position:absolute;transform:translateX(-50%);min-width:12px;text-align:center}
+.tab-canvas.has-beats .tab-playhead{top:30px}
+.transport{margin:15px 0 8px}
+.player-fold{margin-top:10px;border:1px solid #382d4d;border-radius:13px;background:linear-gradient(145deg,#1d172a,#171321);overflow:hidden}
+.player-fold>summary{display:flex;align-items:center;min-height:48px;padding:13px 14px;color:#e9ddff;font-size:12px;font-weight:850;letter-spacing:.2px;cursor:pointer;list-style:none}
+.player-fold>summary::-webkit-details-marker{display:none}
+.player-fold>summary::after{content:"＋";margin-left:auto;color:#b99aff;font-size:17px}
+.player-fold[open]>summary::after{content:"−"}
+.player-fold[open]>summary{border-bottom:1px solid #ffffff12;background:#241d35}
+.player-fold-body{padding:12px}
+.player-fold-body .player-settings{margin-bottom:10px}
+.player-fold-body .song-tools{margin:10px 0}
+.player-fold-body .audio-file-row{flex-wrap:wrap}
+.player-fold-body .audio-file-row span{flex:1;min-width:130px;overflow-wrap:anywhere}
+.player-fold-body .mic-panel{margin-top:0}
+.player-fold-body .volume-panel{margin-top:10px}
+.player-fold-body .info-note{margin-top:10px}
+.player-fold-body .tab-tools{margin-top:0}
+.player-fold-body .tab-tools label{grid-column:1/-1}
+.player-fold-body .note-editor-panel{margin-top:12px}
+.mic-target-card{margin:16px 0;padding:15px;background:var(--panel);border:1px solid #6d578f;border-radius:14px}
+.mic-target-card>strong{display:block;margin-bottom:11px;color:#e9ddff;font-size:13px}
+.mic-target-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mic-target-grid label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:10px;font-weight:800}
+.mic-target-grid select{width:100%;min-width:0;padding:10px;background:#302544;color:white;border:1px solid #655080;border-radius:8px}
+.mic-target-card p{min-height:28px;margin:10px 0 0;color:#cdb8ef;font-size:11px;line-height:1.5}
+.mic-target-card .wide{margin-top:10px}
+@media(max-width:380px){
+  .app-shell{padding-left:13px;padding-right:13px}
+  .transport{grid-template-columns:1fr 1fr 1fr;gap:5px}
+  .transport button{font-size:9px;padding:11px 3px}
+  .note-focus strong{font-size:20px}
+  .player-title-row{align-items:flex-start}
+}
