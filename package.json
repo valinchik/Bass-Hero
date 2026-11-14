@@ -1,8 +1,8 @@
 {
   "name": "bass-hero",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
-  "description": "Bass Hero 1.7 - MP3 analysis and bass tab player",
+  "description": "Bass Hero 1.8 - synchronized custom-song player and bass practice",
   "scripts": {
     "build": "echo Web app ready",
     "android:sync": "cap sync android"
