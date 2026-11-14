@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#6d3bd1">
-  <meta name="description" content="Bass Hero 1.7 - automatická analýza MP3 a trénink baskytary">
+  <meta name="description" content="Bass Hero 1.8 - automatická analýza MP3 a trénink baskytary">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
-  <title>Bass Hero 1.7</title>
+  <title>Bass Hero 1.8</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <button class="brand brand-button" data-screen="home-screen" aria-label="Domů">
-        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.7</small></span>
+        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.8</small></span>
       </button>
       <button class="icon-button" id="settings-shortcut" aria-label="Nastavení">⚙</button>
     </header>
@@ -32,7 +32,7 @@
           <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor tabů</strong><small>Vlastní tabulatury</small></button>
           <button class="menu-card" data-screen="mic-test-screen"><span class="menu-icon">🎙</span><strong>Mikrofon a AI</strong><small>Kalibrace rozpoznávání</small></button>
         </div>
-        <p class="version">BASS HERO · v1.7</p>
+        <p class="version">BASS HERO · v1.8</p>
       </section>
 
       <section id="tabs-screen" class="screen">
@@ -82,29 +82,18 @@
           <div class="progress-bottom"><span id="hit-counter">0 správně</span><span id="miss-counter">0 chyb</span></div>
         </div>
 
-        <div class="player-settings">
-          <label><span>Režim hraní</span>
-            <select id="play-mode"><option value="wait">Čekat na správný tón</option><option value="flow">Plynule bez zastavení</option></select>
-          </label>
-          <label><span>Režim zvuku</span>
-            <select id="sound-mode"><option value="original">Original</option><option value="bass-sync">Bass Sync</option></select>
-          </label>
-          <label><span>Rychlost</span>
-            <select id="player-speed">
-              <option value="1">100 %</option><option value="0.9">90 %</option><option value="0.8">80 %</option><option value="0.7">70 %</option><option value="0.6">60 %</option><option value="0.5">50 %</option><option value="0.4">40 %</option><option value="0.3">30 %</option><option value="0.2">20 %</option><option value="0.1">10 %</option><option value="0.05">5 %</option>
-            </select>
-          </label>
+        <div class="note-focus">
+          <div><small>TEĎ HRAJ</small><strong id="current-note">E · 0</strong><span id="current-technique"></span></div>
+          <div class="next-focus"><small>DALŠÍ TÓN</small><strong id="next-note">A · 2</strong></div>
+          <p id="player-feedback">Připraveno. Zapni mikrofon a spusť skladbu.</p>
+          <button class="outline-button" id="muted-note-confirm" style="display:none">POTVRDIT TLUMENÝ TÓN</button>
         </div>
 
-        <div class="song-tools">
-          <label>Tempo BPM<input id="player-bpm" type="number" min="30" max="240" step="1" value="90"></label>
-          <label>Kalibrace synchronizace <strong id="sync-offset-value">0 ms</strong><input id="sync-offset" type="range" min="-500" max="500" step="5" value="0"></label>
+        <div class="tab-heading">
+          <strong>TABULATURA</strong>
+          <label class="beats-toggle"><input id="show-beats" type="checkbox" checked> Zobrazit doby</label>
         </div>
-        <div class="audio-file-row">
-          <button class="outline-button" id="load-audio">♫ Připojit vlastní audio</button>
-          <input id="audio-file" type="file" accept="audio/*" hidden>
-          <span id="audio-file-label">Demo používá vytvořený doprovod</span>
-        </div>
+        <div class="tab-viewport" id="tab-viewport"><div id="tab-canvas" class="tab-canvas"></div></div>
 
         <div class="transport">
           <button class="primary-button" id="player-play">▶ SPUSTIT</button>
@@ -116,49 +105,76 @@
           <button class="outline-button" id="player-resume">Pokračovat od uloženého místa</button>
         </div>
 
-        <div class="note-focus">
-          <div><small>TEĎ HRAJ</small><strong id="current-note">E · 0</strong><span id="current-technique"></span></div>
-          <div class="next-focus"><small>DALŠÍ TÓN</small><strong id="next-note">A · 2</strong></div>
-          <p id="player-feedback">Připraveno. Zapni mikrofon a spusť skladbu.</p>
-          <button class="outline-button" id="muted-note-confirm" style="display:none">POTVRDIT TLUMENÝ TÓN</button>
-        </div>
-
-        <div class="tab-heading"><strong> TABULATURA</strong><small>Posouvej vodorovně pro další takty</small></div>
-        <div class="tab-viewport" id="tab-viewport"><div id="tab-canvas" class="tab-canvas"></div></div>
-        <div class="tab-tools">
-          <label>Přiblížení <strong id="tab-zoom-value">100 %</strong><input id="tab-zoom" type="range" min="35" max="160" step="5" value="100"></label>
-          <button class="outline-button" id="tab-fit">PŘIZPŮSOBIT CELÝ TAB</button>
-          <button class="secondary-button" id="review-tab">ZKONTROLOVAT A OPRAVIT</button>
-          <button class="outline-button" id="suggest-techniques">NAVRHNOUT TECHNIKY</button>
-          <button class="primary-button" id="save-project">ULOŽIT PROJEKT</button>
-        </div>
-        <p class="info-note" id="tab-review-status">Klepni na notu v tabulatuře a můžeš upravit strunu, pražec, techniku i její čas.</p>
-        <div class="note-editor-panel" id="note-editor-panel" hidden>
-          <strong id="note-edit-title">Úprava noty</strong>
-          <div class="note-edit-grid">
-            <label>Struna<select id="note-edit-string"><option value="E">E</option><option value="A">A</option><option value="D">D</option><option value="G">G</option></select></label>
-            <label>Pražec<input id="note-edit-fret" type="number" min="0" max="24" value="0"></label>
-            <label>Technika<select id="note-edit-technique">
-              <option value="">Bez techniky</option><option value="hammer-on">Hammer-on</option><option value="pull-off">Pull-off</option><option value="slide up">Slide nahoru</option><option value="slide down">Slide dolů</option><option value="vibrato">Vibrato</option><option value="bend">Bend</option><option value="muted note">Tlumený tón</option><option value="__keep__">Ponechat původní techniku</option>
-            </select></label>
-            <label>Posun této noty v ms<input id="note-edit-offset" type="number" min="-500" max="500" step="5" value="0"></label>
+        <details class="player-fold">
+          <summary>⚙ Nastavení skladby</summary>
+          <div class="player-fold-body">
+            <div class="player-settings">
+              <label><span>Režim hraní</span>
+                <select id="play-mode"><option value="wait">Čekat na správný tón</option><option value="flow">Plynule bez zastavení</option></select>
+              </label>
+              <label><span>Režim zvuku</span>
+                <select id="sound-mode"><option value="original">Original</option><option value="bass-sync">Bass Sync</option></select>
+              </label>
+              <label><span>Rychlost</span>
+                <select id="player-speed">
+                  <option value="1">100 %</option><option value="0.9">90 %</option><option value="0.8">80 %</option><option value="0.7">70 %</option><option value="0.6">60 %</option><option value="0.5">50 %</option><option value="0.4">40 %</option><option value="0.3">30 %</option><option value="0.2">20 %</option><option value="0.1">10 %</option><option value="0.05">5 %</option>
+                </select>
+              </label>
+            </div>
+            <div class="song-tools">
+              <label>Tempo BPM<input id="player-bpm" type="number" min="30" max="240" step="1" value="90"></label>
+              <label>Kalibrace synchronizace <strong id="sync-offset-value">0 ms</strong><input id="sync-offset" type="range" min="-500" max="500" step="5" value="0"></label>
+            </div>
+            <div class="audio-file-row">
+              <button class="outline-button" id="load-audio">♫ Připojit vlastní audio</button>
+              <input id="audio-file" type="file" accept="audio/*" hidden>
+              <span id="audio-file-label">Demo používá vytvořený doprovod</span>
+            </div>
+            <div class="info-note" id="sound-mode-note">Bass Sync přehraje basovou linku z tabu podle časování skladby.</div>
           </div>
-          <div class="editor-actions"><button class="primary-button" id="save-note-edit">ULOŽIT ÚPRAVU</button><button class="outline-button" id="close-note-edit">ZAVŘÍT</button></div>
-        </div>
+        </details>
 
-        <div class="mic-panel">
-          <div><strong>🎙 Kontrola baskytary</strong><small id="mic-status">Mikrofon vypnutý</small></div>
-          <button class="outline-button" id="mic-toggle">ZAPNOUT MIKROFON</button>
-        </div>
+        <details class="player-fold">
+          <summary>🎙 Mikrofon a hlasitost</summary>
+          <div class="player-fold-body">
+            <div class="mic-panel">
+              <div><strong>Kontrola baskytary</strong><small id="mic-status">Mikrofon vypnutý</small></div>
+              <button class="outline-button" id="mic-toggle">ZAPNOUT MIKROFON</button>
+            </div>
+            <div class="volume-panel">
+              <label><span>Hlasitost hudby</span><input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.65"><b id="music-volume-value">65 %</b></label>
+              <label><span>Hlasitost basové linky</span><input id="guide-volume" type="range" min="0" max="1" step="0.05" value="0.15"><b id="guide-volume-value">15 %</b></label>
+              <small>Druhá hlasitost ovládá tóny basové linky přehrávané aplikací v režimu Bass Sync.</small>
+            </div>
+          </div>
+        </details>
 
-        <div class="volume-panel">
-          <label><span>Hlasitost hudby</span><input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.65"><b id="music-volume-value">65 %</b></label>
-          <label><span>Referenční basa</span><input id="guide-volume" type="range" min="0" max="1" step="0.05" value="0.15"><b id="guide-volume-value">15 %</b></label>
-          <small>Hlasitost skutečné baskytary uprav na zesilovači. Druhý posuvník ovládá basové tóny přehrávané aplikací.</small>
-        </div>
-        <div class="info-note" id="sound-mode-note">Original přehraje vlastní nahrávku, pokud ji připojíš. Bez nahrávky hraje demo doprovod.</div>
+        <details class="player-fold" id="tab-edit-details">
+          <summary>✎ Úpravy a nástroje tabulatury</summary>
+          <div class="player-fold-body">
+            <div class="tab-tools">
+              <label>Přiblížení <strong id="tab-zoom-value">100 %</strong><input id="tab-zoom" type="range" min="35" max="160" step="5" value="100"></label>
+              <button class="outline-button" id="tab-fit">PŘIZPŮSOBIT CELÝ TAB</button>
+              <button class="secondary-button" id="review-tab">ZKONTROLOVAT A OPRAVIT</button>
+              <button class="outline-button" id="suggest-techniques">NAVRHNOUT TECHNIKY</button>
+              <button class="primary-button" id="save-project">ULOŽIT PROJEKT</button>
+            </div>
+            <p class="info-note" id="tab-review-status">Klepni na notu v tabulatuře a můžeš upravit strunu, pražec, techniku i její čas.</p>
+            <div class="note-editor-panel" id="note-editor-panel" hidden>
+              <strong id="note-edit-title">Úprava noty</strong>
+              <div class="note-edit-grid">
+                <label>Struna<select id="note-edit-string"><option value="E">E</option><option value="A">A</option><option value="D">D</option><option value="G">G</option></select></label>
+                <label>Pražec<input id="note-edit-fret" type="number" min="0" max="24" value="0"></label>
+                <label>Technika<select id="note-edit-technique">
+                  <option value="">Bez techniky</option><option value="hammer-on">Hammer-on</option><option value="pull-off">Pull-off</option><option value="slide up">Slide nahoru</option><option value="slide down">Slide dolů</option><option value="vibrato">Vibrato</option><option value="bend">Bend</option><option value="muted note">Tlumený tón</option><option value="__keep__">Ponechat původní techniku</option>
+                </select></label>
+                <label>Posun této noty v ms<input id="note-edit-offset" type="number" min="-500" max="500" step="5" value="0"></label>
+              </div>
+              <div class="editor-actions"><button class="primary-button" id="save-note-edit">ULOŽIT ÚPRAVU</button><button class="outline-button" id="close-note-edit">ZAVŘÍT</button></div>
+            </div>
+          </div>
+        </details>
       </section>
-
       <section id="results-screen" class="screen">
         <p class="eyebrow">SKLADBA DOKONČENA</p>
         <h2>Dobrá práce<span>.</span></h2>
@@ -233,7 +249,16 @@ E|0-------0-------|0-------0-------|</textarea>
           <div class="mic-test-meter"><span id="mic-test-progress"></span></div>
           <p id="mic-test-live">Zatím žádný tón nezachycen</p>
         </div>
-        <button class="primary-button wide" id="mic-test-start">SPUSTIT TEST</button>
+        <div class="mic-target-card">
+          <strong>Vyzkoušet konkrétní tón</strong>
+          <div class="mic-target-grid">
+            <label>Struna<select id="mic-target-string"><option value="E">E</option><option value="A">A</option><option value="D">D</option><option value="G">G</option></select></label>
+            <label>Pražec<select id="mic-target-fret"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select></label>
+          </div>
+          <button class="secondary-button wide" id="mic-target-listen">POSLOUCHAT NA TÓN</button>
+          <p id="mic-target-status">Vyber strunu a pražec, potom zahraj tón.</p>
+        </div>
+        <button class="primary-button wide" id="mic-test-start">SPUSTIT TEST OTEVŘENÝCH STRUN</button>
         <button class="outline-button wide" id="mic-test-reset">VYMAZAT VÝSLEDEK</button>
         <div class="mic-test-report" id="mic-test-report">Po testu se zde zobrazí výsledek rozpoznávání.</div>
         <div class="mic-test-report ai-coach">
