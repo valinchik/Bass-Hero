@@ -1115,6 +1115,9 @@ function renderMicTest(){
   $("#mic-test-note").textContent=done>=total?"HOTOVO":current.name;
   $("#mic-test-instruction").textContent=done>=total?"Test dokončen.":"Zahraj "+(current.fret===0?"otevřenou strunu ":"tón ")+current.name+".";
   $("#mic-test-start").textContent=state.micTestActive?"ZASTAVIT TEST":done>=total?"OPAKOVAT TEST":"SPUSTIT TEST";
+  $("#mic-test-mode").disabled=state.micTestActive;
+  $("#mic-target-string").disabled=state.micTestActive;
+  $("#mic-target-fret").disabled=state.micTestActive;
   $("#mic-test-report").textContent=state.micTestHistory.length
     ?"Předchozí testy: "+state.micTestHistory.length+" · poslední úspěšnost "+state.micTestHistory[state.micTestHistory.length-1].accuracy+" %"
     :"Po testu se zde zobrazí výsledek rozpoznávání.";
@@ -1187,63 +1190,6 @@ $("#ai-reset").onclick=()=>{
   persistAIProfile();renderAiCoach();
 };
 renderMicTest();
-function renderAiCoach(){
-  const names=STRINGS;const learned=names.reduce((total,key)=>total+(state.aiProfile.strings[key]?.samples||0),0);
-  $("#ai-status").textContent=learned?"Adaptivní kalibrace aktivní · "+state.aiProfile.tests+" dokončených testů":"AI čeká na první kalibraci.";
-  $("#ai-profile").innerHTML=names.map(key=>{
-    const p=state.aiProfile.strings[key]||{offsetCents:0,samples:0,meanAbsError:0,errors:0};
-    const detail=p.samples?p.offsetCents.toFixed(1)+" centů · "+p.samples+" vzorků":"čeká na data";
-    return '<div class="ai-string-row"><b>'+key+'</b><span>'+detail+" · chyb "+(p.errors||0)+"</span></div>";
-  }).join("")+"<p>Naučené vzorky: "+learned+" · poslední test: "+(state.aiProfile.lastAccuracy||0)+" %</p>";
-}
-function renderMicTest(){
-  renderAiCoach();const done=state.micTestResults.length;
-  $("#mic-test-progress").style.width=(done/4*100)+"%";
-  $("#mic-test-step").textContent=done>=4?"TEST DOKONČEN":"KROK "+(done+1)+" / 4";
-  const item=TEST_STRINGS[Math.min(done,3)];$("#mic-test-note").textContent=done>=4?"100 %":item.name;
-  $("#mic-test-instruction").textContent=done<4?"Zahraj otevřenou strunu "+item.name+".":"Test dokončen.";
-  $("#mic-test-report").textContent=state.micTestHistory.length?"Předchozí testy: "+state.micTestHistory.length+" · poslední úspěšnost "+state.micTestHistory[state.micTestHistory.length-1].accuracy+" %":"Po testu se zde zobrazí výsledek.";
-}
-async function beginMicTest(){
-  stopMic();state.micTestActive=true;state.micTestIndex=0;state.micTestResults=[];state.lastDetectedAt=0;
-  renderMicTest();$("#mic-test-live").textContent="Žádám o přístup k mikrofonu…";await startMic();
-  if(state.micEnabled)$("#mic-test-live").textContent="Mikrofon poslouchá · zahraj E1";
-}
-function handleMicTestPitch(hz){
-  const item=TEST_STRINGS[state.micTestIndex];if(!item)return;
-  const cents=1200*Math.log2(hz/item.hz);
-  $("#mic-test-live").textContent="Zachyceno "+hz.toFixed(1)+" Hz · "+(cents>=0?"+":"")+cents.toFixed(0)+" centů";
-  if(Math.abs(cents)<=85&&performance.now()-state.lastDetectedAt>900){
-    state.lastDetectedAt=performance.now();state.micTestResults.push({string:item.string,expected:item.hz,detected:hz,cents,ok:true});
-    state.micTestIndex++;
-    if(state.micTestIndex>=4)completeMicTest();
-    else{renderMicTest();$("#mic-test-live").textContent="Rozpoznáno "+item.name+" · teď zahraj "+TEST_STRINGS[state.micTestIndex].name;}
-  }
-}
-function completeMicTest(){
-  state.aiProfile.tests++;state.aiProfile.lastAccuracy=Math.round(state.micTestResults.length/4*100);
-  state.micTestResults.forEach(r=>recordAI(r.string,r.cents,true));
-  localStorage.setItem("bh-ai-profile",JSON.stringify(state.aiProfile));
-  state.micTestActive=false;stopMic();
-  const report={date:new Date().toISOString(),accuracy:100,results:state.micTestResults};state.micTestHistory.push(report);state.micTestHistory=state.micTestHistory.slice(-20);
-  localStorage.setItem("bh-mic-tests",JSON.stringify(state.micTestHistory));
-  $("#mic-test-step").textContent="TEST DOKONČEN";$("#mic-test-note").textContent="100 %";
-  $("#mic-test-instruction").textContent="Rozpoznány všechny čtyři otevřené struny.";
-  $("#mic-test-live").textContent=state.micTestResults.map(x=>x.string+": "+x.detected.toFixed(1)+" Hz").join(" · ");
-  $("#mic-test-progress").style.width="100%";$("#mic-test-start").textContent="OPAKOVAT TEST";
-  $("#mic-test-report").textContent="Poslední výsledek: 100 % · testů v telefonu: "+state.micTestHistory.length+".";
-  renderAiCoach();
-}
-$("#mic-test-start").onclick=beginMicTest;
-$("#mic-test-reset").onclick=()=>{
-  state.micTestActive=false;stopMic();state.micTestResults=[];state.micTestHistory=[];
-  localStorage.removeItem("bh-mic-tests");$("#mic-test-start").textContent="SPUSTIT TEST";
-  $("#mic-test-live").textContent="Zatím žádný tón nezachycen";$("#mic-test-progress").style.width="0%";
-  renderMicTest();$("#mic-test-report").textContent="Historie testů byla vymazána.";
-};
-$("#ai-reset").onclick=()=>{state.aiProfile=DEFAULT_AI();localStorage.setItem("bh-ai-profile",JSON.stringify(state.aiProfile));renderAiCoach();};
-renderMicTest();
-
 function parseAsciiTab(text,title,bpm){
   const rows={};
   text.split(/\r?\n/).forEach(line=>{
