@@ -90,3 +90,5 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.app-shell{width
   .note-focus strong{font-size:20px}
   .player-title-row{align-items:flex-start}
 }
+
+.mic-target-grid[hidden]{display:none}.mic-mode-label{display:flex;flex-direction:column;gap:7px;margin-top:12px;color:var(--muted);font-size:11px}.mic-mode-label select{width:100%;background:#302544;color:white;border:1px solid #655080;border-radius:8px;padding:10px;font-size:12px}
