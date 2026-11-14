@@ -116,7 +116,7 @@ const DEMO_SONGS = [
 
 function show(id){
   const currentScreen=$(".screen.active")?.id;
-  if(currentScreen!==id&&state.micEnabled){
+  if(currentScreen!==id&&(state.micEnabled||state.micTestActive)){
     state.micTestActive=false;
     stopMic();
   }
@@ -530,7 +530,7 @@ async function analyzeBassAudio(file,manualBpm,forceManualBpm,onProgress){
     mono[out]=filtered;
   }
   const frameSize=1024,hop=384;
-  const minLag=Math.max(2,Math.floor(sampleRate/260));
+  const minLag=Math.max(2,Math.floor(sampleRate/420));
   const maxLag=Math.min(frameSize-8,Math.floor(sampleRate/38));
   const usable=frameSize-maxLag;
   const frames=[];
@@ -568,7 +568,7 @@ async function analyzeBassAudio(file,manualBpm,forceManualBpm,onProgress){
         const denominator=left-2*center+right;
         const shift=Math.abs(denominator)>1e-9?Math.max(-0.5,Math.min(0.5,0.5*(left-right)/denominator)):0;
         const frequency=sampleRate/(bestLag+shift);
-        if(frequency>=38&&frequency<=260){
+        if(frequency>=38&&frequency<=420){
           frames.push(Math.round(69+12*Math.log2(frequency/440)));
         }else frames.push(null);
       }else frames.push(null);
@@ -591,7 +591,7 @@ async function analyzeBassAudio(file,manualBpm,forceManualBpm,onProgress){
     if(midi!==null){
       const durationSeconds=(end-start+1)*hop/sampleRate;
       const position=bassPositionFromMidi(midi);
-      if(position&&durationSeconds>=0.12){
+      if(position&&durationSeconds>=0.06){
         const startSeconds=start*hop/sampleRate;
         notes.push({
           id:"ai-"+notes.length,
@@ -746,7 +746,7 @@ function playerTick(now){
       state.waiting=true;state.playing=false;state.currentIndex=state.song.notes.indexOf(note);state.currentBeat=getNoteBeat(note);
       stopAudioAtCurrentBeat();$("#player-state").textContent="ČEKÁM NA TÓN";
       $("#player-feedback").textContent="Zahraj "+note.string+" · pražec "+note.display+". Při chybě se tón zopakuje.";
-      updatePlayerUI(note.beat);playGuideNote(note);return;
+      updatePlayerUI(getNoteBeat(note));playGuideNote(note);return;
     }
   }else{
     const pending=findNextNote();
@@ -788,7 +788,7 @@ function hitWaitingNote(cents){
   state.waiting=false;state.playing=true;state.startBeat=getNoteBeat(note);state.startAt=performance.now();
   startAudioAtBeat(getNoteBeat(note)-getGlobalOffsetBeat());$("#player-state").textContent="PŘEHRÁVÁNÍ";
   state.raf=requestAnimationFrame(playerTick);
-  updatePlayerUI(note.beat);
+  updatePlayerUI(getNoteBeat(note));
 }
 function handleSongPitch(hz){
   if(state.previewing||!state.song||(!state.playing&&!state.waiting))return;
@@ -1011,7 +1011,8 @@ function normalizeImportedSong(data){
   }).sort((a,b)=>a.beat-b.beat);
   const inferredBeats=Math.ceil((notes[notes.length-1].beat+notes[notes.length-1].duration)/4)*4;
   const rawTotalBeats=Number(data.totalBeats);
-  const totalBeats=Number.isFinite(rawTotalBeats)&&rawTotalBeats>=4?Math.max(4,Math.min(100000,rawTotalBeats)):Math.max(4,inferredBeats);
+  const requestedBeats=Number.isFinite(rawTotalBeats)&&rawTotalBeats>=4?Math.min(100000,rawTotalBeats):4;
+  const totalBeats=Math.max(4,Math.min(100000,requestedBeats,inferredBeats===0?4:100000),Math.min(100000,inferredBeats));
   const rawSyncOffset=Number(data.syncOffsetMs);
   const syncOffsetMs=Number.isFinite(rawSyncOffset)?Math.max(-500,Math.min(500,rawSyncOffset)):0;
   return {id:"custom-"+Date.now(),title:String(data.title||"Importovaná skladba").slice(0,60),bpm:Math.max(30,Math.min(240,Number(data.bpm)||90)),bars:Math.ceil(totalBeats/4),totalBeats,syncOffsetMs,notes,description:"Vlastní importovaná tabulatura"};
@@ -1076,7 +1077,7 @@ $("#tab-file").onchange=e=>{
 };
 $("#export-tabs").onclick=()=>{
   const data={format:"bass-hero-tab",version:1,songs:state.savedTabs.map(song=>({title:song.title,bpm:song.bpm,bars:song.bars,totalBeats:song.totalBeats,syncOffsetMs:song.syncOffsetMs||0,notes:song.notes.map(n=>({beat:n.beat,string:n.string,fret:n.fret,duration:n.duration,technique:n.technique,display:n.display,offsetMs:n.offsetMs||0,muted:Boolean(n.muted)}))}))};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="bass-hero-tabs.json";a.click();URL.revokeObjectURL(url);
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="bass-hero-tabs.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
 };
 
 $("#music-volume").oninput=e=>{state.musicVolume=Number(e.target.value);$("#music-volume-value").textContent=Math.round(state.musicVolume*100)+" %";if(state.audioElement)state.audioElement.volume=state.musicVolume;localStorage.setItem("bh-music-volume",String(state.musicVolume));};
