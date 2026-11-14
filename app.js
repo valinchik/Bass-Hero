@@ -288,6 +288,7 @@ function setNoteStatus(note,status){
 }
 
 function selectNoteForEditing(note){
+  $("#tab-edit-details").open=true;
   state.selectedNoteId=note.id;$("#note-editor-panel").hidden=false;
   $("#note-edit-title").textContent="Nota · "+note.string+" "+note.display;
   $("#note-edit-string").value=note.string;$("#note-edit-fret").value=note.fret;
