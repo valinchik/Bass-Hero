@@ -195,7 +195,7 @@ function openSong(song){
   updateSoundModeNote();
   if(state.audioSources[song.id])setAudioSource(state.audioSources[song.id],false);
   else{setAudioSource(null,false);restoreAudioAsset(song.id);}
-  renderTab();updatePlayerUI(0);show("player-screen");
+  renderTab();$("#tab-viewport").scrollLeft=0;updatePlayerUI(0);show("player-screen");
   $("#player-feedback").textContent="Připraveno. Zapni mikrofon a spusť skladbu.";
 }
 function previewSong(song){
@@ -724,7 +724,7 @@ $("#play-mode").onchange=e=>{state.playMode=e.target.value;localStorage.setItem(
 $("#sound-mode").onchange=e=>{state.soundMode=e.target.value;localStorage.setItem("bh-sound-mode",state.soundMode);updateSoundModeNote();};
 $("#player-speed").onchange=e=>{
   const oldSpeed=state.speed;const now=performance.now();
-  if(state.playing&&state.song){const beat=state.startBeat+(now-state.startAt)/(60000/state.song.bpm/oldSpeed);state.startBeat=beat;state.startAt=now;}
+  if(state.playing&&state.song){const beat=getLiveBeat(now);state.startBeat=beat;state.startAt=now;}
   state.speed=Number(e.target.value);localStorage.setItem("bh-speed",String(state.speed));
   if(state.audioElement)state.audioElement.playbackRate=state.speed;
 };
@@ -812,6 +812,7 @@ function getLiveBeat(now){
 function playerTick(now){
   if(!state.playing||!state.song)return;
   const beat=getLiveBeat(now);
+  if(state.audioClockActive){state.startBeat=beat;state.startAt=now;}
   runAudioStep(beat);runBassSyncNotes(beat);
   if(state.playMode==="wait"){
     const note=findNextNote();
