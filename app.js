@@ -929,16 +929,19 @@ function recordAI(string,cents,ok){
   localStorage.setItem("bh-ai-profile",JSON.stringify(state.aiProfile));
 }
 
-function stopMic(){
+function stopMic(preserveTargetStatus){
   state.micRequestId++;
   state.micStarting=false;
-  state.micEnabled=false;
+  state.micEnabled=false;state.micTargetActive=false;state.micTargetGoodFrames=0;
+  state.micPitchCandidateHz=0;state.micPitchCandidateFrames=0;
   if(state.micFrame)cancelAnimationFrame(state.micFrame);
   if(state.micStream)state.micStream.getTracks().forEach(track=>track.stop());
   if(state.micContext&&state.micContext.state!=="closed")state.micContext.close().catch(()=>{});
   state.micStream=null;state.micContext=null;state.micFrame=0;
   $("#mic-toggle").disabled=false;$("#mic-toggle").textContent="ZAPNOUT MIKROFON";
   $("#mic-test-start").disabled=false;
+  $("#mic-target-listen").textContent="POSLOUCHAT NA TÓN";
+  if(!preserveTargetStatus)$("#mic-target-status").textContent="Mikrofon vypnutý";
   $("#mic-status").textContent="Mikrofon vypnutý";
 }
 async function startMic(){
@@ -971,31 +974,111 @@ async function startMic(){
     const buffer=new Float32Array(analyser.fftSize);state.micEnabled=true;state.micStarting=false;
     $("#mic-toggle").disabled=false;$("#mic-toggle").textContent="VYPNOUT MIKROFON";
     $("#mic-status").textContent="Mikrofon aktivní · poslouchám";
+    if(state.micTargetActive)$("#mic-target-status").textContent="Mikrofon poslouchá · zahraj vybraný tón";
+    let lastAnalysisAt=0;
     const detect=()=>{
       if(!state.micEnabled||!state.micContext)return;
-      analyser.getFloatTimeDomainData(buffer);const hz=detectPitch(buffer,state.micContext.sampleRate);
-      if(hz>30&&hz<450){
-        if(state.micTestActive)handleMicTestPitch(hz);
-        else handleSongPitch(hz);
+      const now=performance.now();
+      if(now-lastAnalysisAt>=45){
+        lastAnalysisAt=now;analyser.getFloatTimeDomainData(buffer);
+        const rawHz=detectPitch(buffer,state.micContext.sampleRate);
+        const hz=stabilizeMicPitch(rawHz);
+        if(hz>30&&hz<450){
+          if(state.micTargetActive)handleMicTargetPitch(hz);
+          else if(state.micTestActive)handleMicTestPitch(hz);
+          else handleSongPitch(hz);
+        }
       }
-      state.micFrame=requestAnimationFrame(detect);
+      if(state.micEnabled)state.micFrame=requestAnimationFrame(detect);
     };detect();
   }catch(error){
     if(requestId!==state.micRequestId)return;
     stopMic();
     const message="Mikrofon se nepodařilo zapnout ["+(error.name||"neznámá chyba")+"]: "+(error.message||error);
     $("#mic-status").textContent=message;$("#player-feedback").textContent=message;$("#mic-test-live").textContent=message;
+    $("#mic-target-status").textContent=message;
   }
 }
 function detectPitch(buffer,sampleRate){
-  let rms=0;for(let i=0;i<buffer.length;i++)rms+=buffer[i]*buffer[i];rms=Math.sqrt(rms/buffer.length);if(rms<.008)return -1;
-  let bestLag=-1,best=-1;const minLag=Math.floor(sampleRate/450),maxLag=Math.min(Math.floor(sampleRate/32),buffer.length/2);
-  for(let lag=minLag;lag<=maxLag;lag+=4){let sum=0;for(let i=0;i<buffer.length-lag;i+=8)sum+=buffer[i]*buffer[i+lag];if(sum>best){best=sum;bestLag=lag;}}
-  return bestLag>0?sampleRate/bestLag:-1;
+  let mean=0;for(let i=0;i<buffer.length;i+=4)mean+=buffer[i];mean/=buffer.length/4;
+  let energy=0;
+  for(let i=0;i<buffer.length;i+=4){const value=buffer[i]-mean;energy+=value*value;}
+  const rms=Math.sqrt(energy/(buffer.length/4));if(rms<.0045)return -1;
+  const minLag=Math.max(2,Math.floor(sampleRate/430));
+  const maxLag=Math.min(Math.floor(sampleRate/32),Math.floor(buffer.length/2));
+  const difference=new Float64Array(maxLag+1),normalized=new Float64Array(maxLag+1);
+  const sampleStride=8;
+  for(let lag=minLag;lag<=maxLag;lag++){
+    let sum=0;
+    for(let i=0;i<buffer.length-lag;i+=sampleStride){
+      const delta=(buffer[i]-mean)-(buffer[i+lag]-mean);sum+=delta*delta;
+    }
+    difference[lag]=sum;
+  }
+  let cumulative=0,bestLag=-1,bestValue=1;
+  for(let lag=minLag;lag<=maxLag;lag++){
+    cumulative+=difference[lag];
+    normalized[lag]=difference[lag]*(lag-minLag+1)/Math.max(1e-12,cumulative);
+    if(normalized[lag]<bestValue){bestValue=normalized[lag];bestLag=lag;}
+  }
+  let chosen=-1;
+  for(let lag=minLag+1;lag<maxLag;lag++){
+    if(normalized[lag]<.22){
+      while(lag+1<maxLag&&normalized[lag+1]<normalized[lag])lag++;
+      chosen=lag;break;
+    }
+  }
+  if(chosen<0&&bestValue<.34)chosen=bestLag;
+  if(chosen<0)return -1;
+  const left=normalized[Math.max(minLag,chosen-1)],center=normalized[chosen],right=normalized[Math.min(maxLag,chosen+1)];
+  const denominator=left-2*center+right;
+  const shift=Math.abs(denominator)>1e-9?Math.max(-.5,Math.min(.5,.5*(left-right)/denominator)):0;
+  return sampleRate/(chosen+shift);
 }
+function stabilizeMicPitch(hz){
+  if(!Number.isFinite(hz)||hz<30||hz>450){state.micPitchCandidateHz=0;state.micPitchCandidateFrames=0;return -1;}
+  if(state.micPitchCandidateHz>0&&Math.abs(1200*Math.log2(hz/state.micPitchCandidateHz))<85){
+    state.micPitchCandidateHz=state.micPitchCandidateHz*.65+hz*.35;
+    state.micPitchCandidateFrames++;
+  }else{
+    state.micPitchCandidateHz=hz;state.micPitchCandidateFrames=1;
+  }
+  return state.micPitchCandidateFrames>=2?state.micPitchCandidateHz:-1;
+}
+
 $("#mic-toggle").onclick=()=>state.micEnabled?stopMic():startMic();
 
 const TEST_STRINGS=[{name:"E1",string:"E",hz:41.2034},{name:"A1",string:"A",hz:55},{name:"D2",string:"D",hz:73.4162},{name:"G2",string:"G",hz:97.9989}];
+function beginMicTargetListen(){
+  if(state.micTargetActive){stopMic();return;}
+  stopMic();state.micTestActive=false;state.micTargetActive=true;state.micTargetGoodFrames=0;
+  $("#mic-target-status").textContent="Žádám o přístup k mikrofonu…";
+  $("#mic-target-listen").textContent="SPOUŠTÍM…";
+  startMic().then(()=>{
+    if(state.micEnabled&&state.micTargetActive)$("#mic-target-status").textContent="Mikrofon poslouchá · zahraj vybraný tón";
+  });
+}
+function handleMicTargetPitch(hz){
+  const string=$("#mic-target-string").value;
+  const fret=Math.max(0,Math.min(24,Number($("#mic-target-fret").value)||0));
+  const target=noteFrequency(string,fret)*Math.pow(2,(state.aiProfile.strings[string]?.offsetCents||0)/1200);
+  const cents=1200*Math.log2(hz/target);
+  const label=string+" · pražec "+fret;
+  if(Math.abs(cents)<=75){
+    state.micTargetGoodFrames++;
+    $("#mic-target-status").textContent="Slyším "+hz.toFixed(1)+" Hz · "+(cents>=0?"+":"")+cents.toFixed(0)+" centů · "+label;
+    if(state.micTargetGoodFrames>=3){
+      stopMic(true);
+      $("#mic-target-status").textContent="Rozpoznáno: "+label+" · "+hz.toFixed(1)+" Hz";
+      $("#mic-target-listen").textContent="ZKUSIT ZNOVU";
+    }
+  }else{
+    state.micTargetGoodFrames=0;
+    $("#mic-target-status").textContent="Slyším "+hz.toFixed(1)+" Hz · očekávám "+label;
+  }
+}
+$("#mic-target-listen").onclick=beginMicTargetListen;
+
 function renderAiCoach(){
   const names=STRINGS;const learned=names.reduce((total,key)=>total+(state.aiProfile.strings[key]?.samples||0),0);
   $("#ai-status").textContent=learned?"Adaptivní kalibrace aktivní · "+state.aiProfile.tests+" dokončených testů":"AI čeká na první kalibraci.";
