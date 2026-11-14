@@ -393,6 +393,21 @@ function playGuideNote(note){
   if(!note||state.guideVolume<=0)return;
   synthTone(noteFrequency(note.string,note.fret),.24,state.guideVolume*.22,"triangle");
 }
+function playBassSyncNote(note){
+  if(!note||state.guideVolume<=0)return;
+  const duration=Math.max(.08,Math.min(2.5,(Number(note.duration)||.5)*60/state.song.bpm/state.speed*.88));
+  synthTone(noteFrequency(note.string,note.fret),duration,state.guideVolume*.48,"triangle");
+}
+function runBassSyncNotes(beat){
+  if(!state.song)return;
+  while(state.bassSyncIndex<state.song.notes.length){
+    const note=state.song.notes[state.bassSyncIndex];
+    const noteBeat=getNoteBeat(note);
+    if(noteBeat>beat+.02)break;
+    if(state.soundMode==="bass-sync"&&noteBeat>=state.startBeat-.05)playBassSyncNote(note);
+    state.bassSyncIndex++;
+  }
+}
 function playBackingStep(step){
   const beat=step/2,bar=Math.floor(beat/4),inBar=beat%4,sub=step%2;
   if(state.audioElement&&state.audioElement.src){
@@ -425,6 +440,14 @@ function runAudioStep(beat){
   if(step<=state.lastSynthStep)return;
   for(let s=state.lastSynthStep+1;s<=step;s++)playBackingStep(s);
   state.lastSynthStep=step;
+}
+function updateSoundModeNote(){
+  const note=$("#sound-mode-note");if(!note)return;
+  if(state.soundMode==="bass-sync"){
+    note.textContent="Bass Sync přehraje původní audio a basovou linku vytvořenou z tabu ve stejném časování. Záznam se neodděluje na samostatné stopy, takže nepřesné tóny může být potřeba upravit.";
+  }else{
+    note.textContent="Original přehraje pouze připojenou nahrávku. Bez vlastního audia použije Bass Hero vytvořený doprovod.";
+  }
 }
 function setAudioSource(file,announce){
   if(state.audioElement){state.audioElement.pause();state.audioElement=null;}
@@ -697,7 +720,7 @@ $("#ai-audio-analyze").onclick=async()=>{
 $("#load-audio").onclick=()=>$("#audio-file").click();
 $("#audio-file").onchange=e=>{const file=e.target.files&&e.target.files[0];if(file)setAudioSource(file,true);};
 $("#play-mode").onchange=e=>{state.playMode=e.target.value;localStorage.setItem("bh-play-mode",state.playMode);};
-$("#sound-mode").onchange=e=>{state.soundMode=e.target.value;localStorage.setItem("bh-sound-mode",state.soundMode);$("#sound-mode-note").textContent=state.soundMode==="bass-sync"?"Bass Sync zvýrazní rytmus a nástupy basové linky. U smíchaného MP3 zůstává původní mix pohromadě.":"Original přehraje připojenou nahrávku, nebo plnější demo doprovod."};
+$("#sound-mode").onchange=e=>{state.soundMode=e.target.value;localStorage.setItem("bh-sound-mode",state.soundMode);updateSoundModeNote();};
 $("#player-speed").onchange=e=>{
   const oldSpeed=state.speed;const now=performance.now();
   if(state.playing&&state.song){const beat=state.startBeat+(now-state.startAt)/(60000/state.song.bpm/oldSpeed);state.startBeat=beat;state.startAt=now;}
@@ -706,23 +729,34 @@ $("#player-speed").onchange=e=>{
 };
 
 function stopAudioAtCurrentBeat(){
-  if(state.audioElement){state.audioElement.pause();return;}
+  if(state.audioElement){state.audioElement.pause();state.audioClockActive=false;return;}
 }
 function startAudioAtBeat(beat){
   if(state.audioElement){
-    state.audioElement.currentTime=Math.max(0,beat*60/state.song.bpm);
-    state.audioElement.volume=state.musicVolume;state.audioElement.playbackRate=state.speed;
-    state.audioElement.play().catch(()=>{$("#player-feedback").textContent="Přehrávání nahrávky se nepodařilo spustit."});
+    const audio=state.audioElement;
+    const targetTime=Math.max(0,beat*60/state.song.bpm);
+    audio.currentTime=Number.isFinite(audio.duration)?Math.min(targetTime,Math.max(0,audio.duration-.02)):targetTime;
+    audio.volume=state.musicVolume;audio.playbackRate=state.speed;
+    state.audioClockActive=false;
+    const playPromise=audio.play();
+    if(playPromise&&typeof playPromise.then==="function"){
+      playPromise.then(()=>{
+        if(state.audioElement===audio&&!audio.paused)state.audioClockActive=true;
+      }).catch(()=>{
+        if(state.audioElement===audio)$("#player-feedback").textContent="Vlastní audio se nepodařilo spustit. Zkontroluj formát souboru a hlasitost.";
+      });
+    }else state.audioClockActive=true;
   }
-  state.lastSynthStep=Math.floor(beat*2)-1;
+  state.lastSynthStep=Math.floor((beat+getGlobalOffsetBeat())*2)-1;
 }
+
 function stopPlayback(save){
   if(state.previewing){state.playMode=state.previewPreviousMode;$("#play-mode").value=state.playMode;}
   if(state.raf)cancelAnimationFrame(state.raf);state.raf=0;
   if(state.countdownTimer)clearTimeout(state.countdownTimer);state.countdownTimer=0;
   if(state.previewTimer)clearTimeout(state.previewTimer);state.previewTimer=0;
   state.playing=false;state.waiting=false;state.previewing=false;
-  if(state.audioElement)state.audioElement.pause();
+  if(state.audioElement)state.audioElement.pause();state.audioClockActive=false;
   if(save!==false)saveSongProgress();
   $("#player-state").textContent="PAUZA";
 }
@@ -751,10 +785,11 @@ function startPlayer(isPreview,resume){
   let fromBeat=resume?state.resumeBeat||0:0;
   state.currentIndex=state.song.notes.findIndex(n=>getNoteBeat(n)>=fromBeat);
   if(state.currentIndex<0)state.currentIndex=state.song.notes.length;
+  state.bassSyncIndex=state.currentIndex;state.micAcceptedNoteId=null;state.micLastAcceptedAt=0;
   state.currentBeat=fromBeat;state.startBeat=fromBeat;
   renderTab();updatePlayerUI(fromBeat);
   const begin=()=>{
-    state.playing=true;state.startAt=performance.now();state.sessionStartedAt=state.startAt;state.lastSynthStep=Math.floor(fromBeat*2)-1;
+    state.playing=true;state.startAt=performance.now();state.sessionStartedAt=state.startAt;state.lastSynthStep=Math.floor(fromBeat*2)-1;state.audioClockActive=false;
     $("#player-state").textContent=state.previewing?"UKÁZKA":"PŘEHRÁVÁNÍ";
     $("#player-feedback").textContent=state.previewing?"Krátká ukázka běží…":state.playMode==="wait"?"Čekám na první tón.":"Hraj podle běžící tabulatury.";
     startAudioAtBeat(fromBeat-getGlobalOffsetBeat());
@@ -767,10 +802,16 @@ function startPlayer(isPreview,resume){
     state.countdownTimer=setTimeout(count,1000);
   }else begin();
 }
+function getLiveBeat(now){
+  if(state.audioElement&&state.audioClockActive&&!state.audioElement.paused&&Number.isFinite(state.audioElement.currentTime)){
+    return state.audioElement.currentTime*state.song.bpm/60+getGlobalOffsetBeat();
+  }
+  return state.startBeat+(now-state.startAt)/(60000/state.song.bpm/state.speed);
+}
 function playerTick(now){
   if(!state.playing||!state.song)return;
-  const beat=state.startBeat+(now-state.startAt)/(60000/state.song.bpm/state.speed);
-  runAudioStep(beat);
+  const beat=getLiveBeat(now);
+  runAudioStep(beat);runBassSyncNotes(beat);
   if(state.playMode==="wait"){
     const note=findNextNote();
     if(note&&beat>=getNoteBeat(note)){
@@ -802,7 +843,7 @@ function confirmMutedNote(){
   }
   if(state.playing&&state.playMode==="flow"){
     const note=findNextNote();if(!note||!note.muted)return;
-    const beat=state.startBeat+(performance.now()-state.startAt)/(60000/state.song.bpm/state.speed);
+    const beat=getLiveBeat(performance.now());
     if(beat>=getNoteBeat(note)-.45&&beat<=getNoteBeat(note)+.62){
       setNoteStatus(note,"hit");state.hits++;state.currentIndex=state.song.notes.indexOf(note)+1;
       $("#player-feedback").textContent="Tlumený tón potvrzen · "+note.string;updatePlayerUI(beat);
@@ -817,6 +858,7 @@ function hitWaitingNote(cents){
   state.currentIndex++;
   if(state.currentIndex>=state.song.notes.length){finishSong();return;}
   state.waiting=false;state.playing=true;state.startBeat=getNoteBeat(note);state.startAt=performance.now();
+  state.micAcceptedNoteId=note.id;
   startAudioAtBeat(getNoteBeat(note)-getGlobalOffsetBeat());$("#player-state").textContent="PŘEHRÁVÁNÍ";
   state.raf=requestAnimationFrame(playerTick);
   updatePlayerUI(getNoteBeat(note));
@@ -824,33 +866,37 @@ function hitWaitingNote(cents){
 function handleSongPitch(hz){
   if(state.previewing||!state.song||(!state.playing&&!state.waiting))return;
   const note=state.waiting?state.song.notes[state.currentIndex]:findNextNote();
-  if(!note||note.muted)return;
+  if(!note||note.muted||state.micAcceptedNoteId===note.id)return;
   const noteBeat=getNoteBeat(note);
   const target=noteFrequency(note.string,note.fret)*Math.pow(2,(state.aiProfile.strings[note.string]?.offsetCents||0)/1200);
   const cents=1200*Math.log2(hz/target);
-  const tolerance=state.waiting?75:65;
+  const tolerance=state.waiting?90:78;
+  const now=performance.now();
   if(Math.abs(cents)<=tolerance){
-    if(performance.now()-state.lastDetectedAt<650)return;
-    state.lastDetectedAt=performance.now();
-    if(state.waiting){hitWaitingNote(cents);return;}
-    const currentBeat=state.startBeat+(performance.now()-state.startAt)/(60000/state.song.bpm/state.speed);
+    if(now-state.micLastAcceptedAt<130)return;
+    const currentBeat=getLiveBeat(now);
+    if(state.waiting){
+      state.micAcceptedNoteId=note.id;state.micLastAcceptedAt=now;hitWaitingNote(cents);return;
+    }
     if(currentBeat>=noteBeat-.45&&currentBeat<=noteBeat+.62){
+      state.micAcceptedNoteId=note.id;state.micLastAcceptedAt=now;
       setNoteStatus(note,"hit");state.hits++;recordAI(note.string,cents,true);state.currentIndex=state.song.notes.indexOf(note)+1;
       $("#player-feedback").textContent="Správně · "+note.string+" "+note.display;updatePlayerUI(currentBeat);
     }
   }else if(state.waiting){
-    if(performance.now()-state.lastDetectedAt>850){
-      state.lastDetectedAt=performance.now();state.misses++;recordAI(note.string,cents,false);
+    if(now-state.lastDetectedAt>850){
+      state.lastDetectedAt=now;state.misses++;recordAI(note.string,cents,false);
       $("#player-feedback").textContent="Mimo tón · zkus znovu "+note.string+" "+note.display;
     }
   }else if(!note.wrongRecorded&&Math.abs(cents)>tolerance){
-    const currentBeat=state.startBeat+(performance.now()-state.startAt)/(60000/state.song.bpm/state.speed);
+    const currentBeat=getLiveBeat(now);
     if(currentBeat>=noteBeat-.25&&currentBeat<=noteBeat+.55){
       note.wrongRecorded=true;state.misses++;recordAI(note.string,cents,false);
       $("#player-feedback").textContent="Nesprávný tón · další pokus";
     }
   }
 }
+
 $("#player-play").onclick=()=>{if(state.waiting){$("#player-feedback").textContent="Zahraj zobrazený tón, přehrávání čeká.";return;}startPlayer(false,false);};
 $("#player-pause").onclick=()=>{stopPlayback(true);$("#player-feedback").textContent="Pozice skladby byla uložena.";};
 $("#player-restart").onclick=()=>{stopPlayback(false);state.resumeBeat=0;state.currentBeat=0;startPlayer(false,false);};
