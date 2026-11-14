@@ -120,7 +120,7 @@ function show(id){
     state.micTestActive=false;
     stopMic();
   }
-  $(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
+  $$(".screen").forEach(el=>el.classList.toggle("active",el.id===id));
   if(id==="stats-screen")renderStats();
   if(id==="editor-screen")renderSavedTabs();
   if(id==="mic-test-screen")renderMicTest();
