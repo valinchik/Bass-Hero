@@ -1012,7 +1012,7 @@ function normalizeImportedSong(data){
   const inferredBeats=Math.ceil((notes[notes.length-1].beat+notes[notes.length-1].duration)/4)*4;
   const rawTotalBeats=Number(data.totalBeats);
   const requestedBeats=Number.isFinite(rawTotalBeats)&&rawTotalBeats>=4?Math.min(100000,rawTotalBeats):4;
-  const totalBeats=Math.max(4,Math.min(100000,requestedBeats,inferredBeats===0?4:100000),Math.min(100000,inferredBeats));
+  const totalBeats=Math.max(4,Math.min(100000,Math.max(requestedBeats,inferredBeats)));
   const rawSyncOffset=Number(data.syncOffsetMs);
   const syncOffsetMs=Number.isFinite(rawSyncOffset)?Math.max(-500,Math.min(500,rawSyncOffset)):0;
   return {id:"custom-"+Date.now(),title:String(data.title||"Importovaná skladba").slice(0,60),bpm:Math.max(30,Math.min(240,Number(data.bpm)||90)),bars:Math.ceil(totalBeats/4),totalBeats,syncOffsetMs,notes,description:"Vlastní importovaná tabulatura"};
