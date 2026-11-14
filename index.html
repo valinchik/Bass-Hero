@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#6d3bd1">
-  <meta name="description" content="Bass Hero 1.8 - automatická analýza MP3 a trénink baskytary">
+  <meta name="description" content="Bass Hero 1.9 - automatická analýza MP3 a trénink baskytary">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
-  <title>Bass Hero 1.8</title>
+  <title>Bass Hero 1.9</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <button class="brand brand-button" data-screen="home-screen" aria-label="Domů">
-        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.8</small></span>
+        <span class="brand-mark">BH</span><span><strong>BASS HERO</strong><small>PLAY YOUR BASS · v1.9</small></span>
       </button>
       <button class="icon-button" id="settings-shortcut" aria-label="Nastavení">⚙</button>
     </header>
@@ -32,7 +32,7 @@
           <button class="menu-card" data-screen="editor-screen"><span class="menu-icon">＋</span><strong>Editor tabů</strong><small>Vlastní tabulatury</small></button>
           <button class="menu-card" data-screen="mic-test-screen"><span class="menu-icon">🎙</span><strong>Mikrofon a AI</strong><small>Kalibrace rozpoznávání</small></button>
         </div>
-        <p class="version">BASS HERO · v1.8</p>
+        <p class="version">BASS HERO · v1.9</p>
       </section>
 
       <section id="tabs-screen" class="screen">
@@ -241,7 +241,21 @@ E|0-------0-------|0-------0-------|</textarea>
         <button class="back-button" data-screen="home-screen">← Zpět</button>
         <p class="eyebrow">KALIBRACE MIKROFONU A AI</p>
         <h2>Test rozpoznávání</h2>
-        <p class="muted">Zahraj postupně otevřené struny E, A, D a G. Mikrofon poslouchá přímo v telefonu, zvuk se nikam neodesílá.</p>
+        <p class="muted">Oba testy mají stejný průběh. Vyber otevřené struny nebo konkrétní tón a zahraj, co aplikace ukazuje. Zvuk zůstává v telefonu.</p>
+        <div class="mic-target-card">
+          <strong>Režim testu</strong>
+          <label class="mic-mode-label">Co chceš otestovat
+            <select id="mic-test-mode">
+              <option value="open">Otevřené struny E A D G</option>
+              <option value="custom">Vybraný tón · struna a pražec 0–24</option>
+            </select>
+          </label>
+          <div class="mic-target-grid">
+            <label>Struna<select id="mic-target-string"><option value="E">E</option><option value="A">A</option><option value="D">D</option><option value="G">G</option></select></label>
+            <label>Pražec<select id="mic-target-fret"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select></label>
+          </div>
+          <p id="mic-target-status">Test postupně projde otevřené struny E, A, D a G.</p>
+        </div>
         <div class="mic-test-card">
           <small id="mic-test-step">PŘIPRAVENO K TESTU</small>
           <strong id="mic-test-note">E1</strong>
@@ -249,16 +263,7 @@ E|0-------0-------|0-------0-------|</textarea>
           <div class="mic-test-meter"><span id="mic-test-progress"></span></div>
           <p id="mic-test-live">Zatím žádný tón nezachycen</p>
         </div>
-        <div class="mic-target-card">
-          <strong>Vyzkoušet konkrétní tón</strong>
-          <div class="mic-target-grid">
-            <label>Struna<select id="mic-target-string"><option value="E">E</option><option value="A">A</option><option value="D">D</option><option value="G">G</option></select></label>
-            <label>Pražec<select id="mic-target-fret"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select></label>
-          </div>
-          <button class="secondary-button wide" id="mic-target-listen">POSLOUCHAT NA TÓN</button>
-          <p id="mic-target-status">Vyber strunu a pražec, potom zahraj tón.</p>
-        </div>
-        <button class="primary-button wide" id="mic-test-start">SPUSTIT TEST OTEVŘENÝCH STRUN</button>
+        <button class="primary-button wide" id="mic-test-start">SPUSTIT TEST</button>
         <button class="outline-button wide" id="mic-test-reset">VYMAZAT VÝSLEDEK</button>
         <div class="mic-test-report" id="mic-test-report">Po testu se zde zobrazí výsledek rozpoznávání.</div>
         <div class="mic-test-report ai-coach">
